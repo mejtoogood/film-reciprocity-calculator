@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en-AU"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#101820">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reciprocity">
+<meta name="description" content="Offline film reciprocity exposure calculator">
+<link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg"><link rel="stylesheet" href="./styles.css">
+<title>Reciprocity Meter</title>
+</head><body>
+<div class="shell">
+<header class="topbar"><strong>Reciprocity</strong><span class="top-version">FILM EXPOSURE</span></header>
+<main>
+<section id="page-calc" class="page active" aria-label="Exposure calculator">
+<div class="film-control"><label for="filmCalc">FILM STOCK</label><select id="filmCalc" class="film-select" aria-label="Film stock"></select></div>
+<div class="meter-block">
+  <label for="meterInput">METERED EXPOSURE</label>
+  <div class="meter-entry"><input id="meterInput" type="number" min="0.00001" step="any" inputmode="decimal" value="30" aria-label="Metered exposure in seconds"><span>seconds</span></div>
+  <div id="tape" class="tape" aria-label="Exposure scrubber">
+    <button type="button" id="prevStop" aria-label="Shorter metered exposure">−</button>
+    <span id="tapePrev" class="tape-ghost">20s</span>
+    <strong id="tapeCurrent">30s</strong>
+    <span id="tapeNext" class="tape-ghost">40s</span>
+    <button type="button" id="nextStop" aria-label="Longer metered exposure">+</button>
+  </div>
+</div>
+<div class="result" aria-live="polite" aria-atomic="true">
+  <span class="small-heading">CORRECTED EXPOSURE</span>
+  <output id="correctedResult">1m 32s</output>
+  <div id="evResult" class="ev-result">+1.62 EV</div>
+  <div id="resultNotice" class="result-notice" hidden></div>
+</div>
+</section>
+<section id="page-graph" class="page scroll-page" aria-label="Curve and table">
+<div class="film-control compact"><label for="filmGraph">FILM STOCK</label><select id="filmGraph" class="film-select"></select></div>
+<div class="section-heading">RECIPROCITY CURVE <span>LOG / LOG</span></div>
+<div class="plot-wrap">
+  <svg id="plot" viewBox="0 0 340 270" role="img" aria-label="Metered against corrected exposure curve. Tap to select a metered exposure." tabindex="0"></svg>
+</div>
+<div class="section-heading table-heading">REFERENCE TABLE <span>SELECT A ROW</span></div>
+<div class="table-wrap"><table><thead><tr><th>METERED</th><th>CORRECTED</th><th>+ EV</th></tr></thead><tbody id="referenceBody"></tbody></table></div>
+</section>
+<section id="page-config" class="page scroll-page" aria-label="Film configuration">
+<div class="section-heading">FILM LIBRARY <button id="addFilm" class="text-action" type="button">+ Add film</button></div>
+<div id="filmLibrary" class="film-library"></div>
+<section id="editor" class="editor" hidden>
+ <div class="section-heading"><span id="editorHeading">ADD FILM</span><button id="cancelEdit" type="button" class="text-action">Cancel</button></div>
+ <form id="filmForm" novalidate>
+  <div class="two"><label>MANUFACTURER<input id="fManufacturer" maxlength="90" required></label><label>FILM STOCK<input id="fName" maxlength="120" required></label></div>
+  <div class="two"><label>NOMINAL ISO<input id="fIso" type="number" min="1" step="any" required></label><label>MODEL<select id="fModel"><option value="power">Power law</option><option value="table">Table of points</option></select></label></div>
+  <div id="powerFields">
+   <div class="two"><label>EXPONENT (P)<input id="fExponent" type="number" min="1" max="5" step="any" value="1.33"></label><label>NO CORRECTION ≤ (s)<input id="fThreshold" type="number" min="0" step="any" value="1"></label></div>
+   <div class="two"><label>VALID FROM (s) <small>OPTIONAL</small><input id="fMin" type="number" min="0" step="any" placeholder="Not specified"></label><label>VALID TO (s) <small>OPTIONAL</small><input id="fMax" type="number" min="0" step="any" placeholder="Not specified"></label></div>
+  </div>
+  <div id="tableFields" hidden>
+   <label>TIME PAIRS <small>ONE METERED,CORRECTED PAIR PER LINE (SECONDS)</small><textarea id="fPairs" rows="7" spellcheck="false" placeholder="1,1&#10;2,2.5&#10;10,21"></textarea></label>
+  </div>
+  <div class="two"><label>DATA ORIGIN<select id="fProvenance"><option value="manufacturer">Manufacturer</option><option value="digitised">Digitised curve</option><option value="personal">Personal measurements</option></select></label><label>SOURCE DATE<input id="fDate" placeholder="YYYY-MM"></label></div>
+  <label>SOURCE TITLE<input id="fSource" maxlength="200"></label>
+  <label>SOURCE URL<input id="fUrl" type="url" placeholder="https://"></label>
+  <label>NOTES<textarea id="fNotes" rows="3" maxlength="1500"></textarea></label>
+  <div id="formError" class="form-error" role="alert" hidden></div>
+  <button class="primary" type="submit">Save film</button>
+ </form>
+</section>
+<div class="section-heading backup-heading">DATA & BACKUP</div>
+<div class="backup-actions">
+ <button id="exportJson" type="button" class="secondary">Export JSON</button>
+ <label class="secondary file-picker">Import JSON <input type="file" id="importJson" accept=".json,application/json" hidden></label>
+</div>
+<div id="importPreview" class="import-preview" hidden>
+  <div id="importSummary"></div>
+  <div class="backup-actions"><button id="acceptImport" type="button" class="primary">Import profiles</button><button id="cancelImport" type="button" class="secondary">Cancel</button></div>
+</div>
+<div id="configStatus" class="config-status" role="status"></div>
+</section>
+</main>
+<nav class="bottom-nav" aria-label="Main navigation">
+ <button class="tab selected" data-page="calc" type="button" aria-current="page">Calc</button>
+ <button class="tab" data-page="graph" type="button">Graph / Table</button>
+ <button class="tab" data-page="config" type="button">Config</button>
+</nav>
+</div>
+<script type="module" src="./app.js"></script>
+</body></html>
