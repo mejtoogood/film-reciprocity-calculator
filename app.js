@@ -1,4 +1,4 @@
-import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds,adjacentStops} from './core.mjs?v=1.2.7';
+import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds,adjacentStops} from './core.mjs?v=1.2.8';
 
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
@@ -93,9 +93,8 @@ function renderCalc(){
   $('nextStop').disabled=!film||next==null;
   $('correctedResult').textContent=r?.ok?formatTime(r.seconds):'—';
   $('evResult').textContent=r?.ok?formatEV(r.ev):r?'OUT OF RANGE':'';
-  const isEstimate=r?.ok && film.id==='kodak-gold-200' && film.provenance==='user';
-  $('resultNotice').hidden=!!r?.ok && !isEstimate;
-  $('resultNotice').textContent=!film?'Add a film in Config':!r.ok?r.reason:isEstimate?'Provisional estimate · not Kodak-verified':'';
+  $('resultNotice').hidden=!!r?.ok;
+  $('resultNotice').textContent=!film?'Add a film in Config':!r.ok?r.reason:'';
 }
 function textSVG(x,y,str,anchor='middle'){
  const n=document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -196,7 +195,7 @@ function renderGraph(){
    svg.append(nodeSVG('circle',{cx:x,cy:y,r:5.5,class:'plot-point'}));
  }
  $('graphReadout').textContent=cr.ok
-   ?axisTime(t)+' metered  →  '+axisTime(cr.seconds)+' corrected  ·  '+formatEV(cr.ev)+(f.id==='kodak-gold-200' && f.provenance==='user'?' · ESTIMATE':'')
+   ?axisTime(t)+' metered  →  '+axisTime(cr.seconds)+' corrected  ·  '+formatEV(cr.ev)
    :axisTime(t)+' metered  ·  NO CORRECTION DATA';
 }
 function onPlotPointer(event){

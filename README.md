@@ -192,3 +192,7 @@ All films can be edited directly from Config. Changes to supplied films are stor
 ## v1.2.7 — Exposure tape boundaries and cache refresh
 
 The previous exposure label is explicitly empty at 1s and the next label explicitly empty at 1h. Both boundary buttons are disabled accordingly. Navigation requests use network-first fetching with offline cached fallback, so previously installed service workers do not indefinitely serve obsolete application HTML when online.
+
+## v1.2.8
+
+Removed unsolicited Kodak estimate warning text from Calc and the estimate suffix from Graph. The configured p=1.3 factor and profile metadata are unchanged.
