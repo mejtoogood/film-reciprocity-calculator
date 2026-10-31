@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms,normalizeOrigin,validDeletedIds,adjacentStops} from './core.mjs';
+import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms,normalizeOrigin,validDeletedIds,adjacentStops,meterChoice} from './core.mjs';
 
 test('Ilford manufacturer coefficients and provisional Kodak Gold 200',()=>{
  assert.deepEqual(BUILTINS.map(f=>f.iso),[50,100,400,400,200]);
@@ -128,4 +128,14 @@ test('exposure tape hides nonexistent neighbouring stops at both limits',()=>{
  assert.deepEqual(adjacentStops(1),{previous:null,next:1.5});
  assert.deepEqual(adjacentStops(3600),{previous:2700,next:null});
  assert.deepEqual(adjacentStops(30),{previous:20,next:45});
+});
+
+test('dropdown selects Custom when a graph or manual value is supplied',()=>{
+ assert.equal(meterChoice(10,'preset'),'10');
+ assert.equal(meterChoice(10,'custom'),'custom');
+ assert.equal(meterChoice(10.3,'preset'),'custom');
+ assert.equal(meterChoice(10.3,'custom'),'custom');
+ assert.equal(meterChoice(1,'preset'),'1');
+ assert.equal(meterChoice(3600,'preset'),'3600');
+ assert.equal(meterChoice(20,'graph'),'custom');
 });

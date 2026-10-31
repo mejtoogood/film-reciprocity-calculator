@@ -188,6 +188,9 @@ export function exposureStops() {
   return [1,1.5,2,3,4,6,8,10,15,20,30,45,60,90,120,180,240,300,450,600,900,1200,1800,2700,3600];
 }
 export const STOPS=exposureStops();
+export function meterChoice(t,mode) {
+  return mode==='preset' && STOPS.includes(t) ? String(t) : 'custom';
+}
 export function adjacentStops(t) {
   return {
     previous: t <= STOPS[0] ? null : STOPS.slice().reverse().find(v => v < t*(1-1e-10)) ?? null,

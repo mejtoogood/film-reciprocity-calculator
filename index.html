@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Reciprocity">
 <meta name="description" content="Offline film reciprocity exposure calculator">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./icon.svg"><link rel="stylesheet" href="./styles.css?v=1.3.0">
+<link rel="apple-touch-icon" href="./icon.svg"><link rel="stylesheet" href="./styles.css?v=1.3.1">
 <title>Reciprocity Meter</title>
 </head><body>
 <div class="shell">
@@ -29,13 +29,7 @@
 <div class="meter-block">
   <label for="meterInput" class="meter-label">METERED EXPOSURE <span>MAX 1h</span></label>
   <div class="meter-entry"><input id="meterInput" type="number" min="1" max="3600" step="any" inputmode="decimal" value="30" aria-label="Metered exposure in seconds"><span>seconds</span></div>
-  <div id="tape" class="tape" aria-label="Exposure scrubber">
-    <button type="button" id="prevStop" aria-label="Shorter metered exposure">−</button>
-    <span id="tapePrev" class="tape-ghost">20s</span>
-    <strong id="tapeCurrent">30s</strong>
-    <span id="tapeNext" class="tape-ghost">40s</span>
-    <button type="button" id="nextStop" aria-label="Longer metered exposure">+</button>
-  </div>
+  <select id="meterPreset" class="meter-select" aria-label="Metered shutter-time preset"></select>
 </div>
 <div class="result" aria-live="polite" aria-atomic="true">
   <span class="small-heading">CORRECTED EXPOSURE</span>
@@ -80,10 +74,10 @@
 </section>
 </main>
 <nav class="bottom-nav" aria-label="Main navigation">
- <button class="tab selected" data-page="graph" type="button" aria-current="page">Graph / Table</button>
- <button class="tab" data-page="calc" type="button">Calc</button>
- <button class="tab" data-page="config" type="button">Config</button>
+ <button class="tab selected" data-page="graph" type="button" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M7 16l5-6 4 3 5-7"/></svg><span>Curve</span></button>
+ <button class="tab" data-page="calc" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15v4M8 19h.01M12 19h.01"/></svg><span>Calc</span></button>
+ <button class="tab" data-page="config" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h9m6 0h3M3 17h3m6 0h9"/><circle cx="15" cy="7" r="3"/><circle cx="9" cy="17" r="3"/></svg><span>Settings</span></button>
 </nav>
 </div>
-<script type="module" src="./app.js?v=1.3.0"></script>
+<script type="module" src="./app.js?v=1.3.1"></script>
 </body></html>

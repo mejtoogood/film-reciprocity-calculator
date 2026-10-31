@@ -207,3 +207,9 @@ Removed unsolicited Kodak estimate warning text from Calc and the estimate suffi
 - Graph / Table is the first and default tab, followed by Calc and Config.
 - The live metered/corrected exposure and EV readout is the first row inside the graph panel, above the SVG plotting area, so a finger scrubbing horizontally does not obscure it.
 - The first tab has extra horizontal width to fit its label on a phone.
+
+## v1.3.1 — Dropdown + navigation
+
+Calc retains direct numeric seconds entry above a native shutter-speed dropdown (1s–1h presets and **Custom**). Selecting a preset updates the calculator, curve and table. Selecting **Custom** focuses the numeric seconds field. A custom numeric entry or interaction with the curve/table chooses Custom, including when the value equals a preset. Meter mode is persisted in local state and included in JSON backups; older saved states infer the mode from their shutter value.
+
+The three tabs, in order, are **Curve**, **Calc**, and **Settings**, with line-chart, calculator and sliders icons.

@@ -14,14 +14,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--tint)}select{appearan
 .meter-entry{margin:18px auto 22px;width:min(82%,260px);display:flex;align-items:center;justify-content:center;gap:9px}
 .meter-entry input{min-width:0;max-width:170px;height:64px!important;font-size:38px;font-weight:660;text-align:center;padding:0 4px!important;background:none!important;border:0!important;border-bottom:1px solid var(--edge)!important;border-radius:0!important;font-variant-numeric:tabular-nums}
 .meter-entry span{color:var(--muted);font-size:14px}.meter-entry input::-webkit-inner-spin-button,.meter-entry input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.tape{background:var(--card);border:1px solid var(--edge);border-radius:12px;display:grid;grid-template-columns:42px 1fr 1.1fr 1fr 42px;gap:4px;align-items:center;height:68px;touch-action:pan-y;user-select:none}
-.tape button{border:0;background:transparent;height:100%;font-size:28px;color:var(--tint)}.tape button:active{background:var(--highlight)}
-.tape strong{font-size:20px;white-space:nowrap}.tape-ghost{color:var(--muted);font-size:13px;white-space:nowrap}
+.meter-select{display:block;width:100%;height:68px;border-radius:12px;background:var(--card);border:1px solid var(--edge);padding:0 16px;font-size:19px;font-weight:650;text-align:center;text-align-last:center}
 .result{margin-top:clamp(32px,8dvh,90px);text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:122px}
 .result output{font-size:clamp(42px,10vw,62px);line-height:1.35;font-weight:730;letter-spacing:-.045em;white-space:nowrap}
 .ev-result{font-size:19px;color:var(--tint);font-weight:600;margin-top:4px}.result-notice{font-size:13px;color:var(--bad);margin-top:12px;max-width:280px}
-.bottom-nav{flex:none;display:grid;grid-template-columns:1.4fr 1fr 1fr;align-items:stretch;min-height:58px;background:#16212b;border-top:1px solid var(--edge);padding-bottom:env(safe-area-inset-bottom,0px)}
-.tab{min-height:58px;background:none;border:0;color:var(--muted);font-weight:650;font-size:14px;position:relative}
+.bottom-nav{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;min-height:65px;background:#16212b;border-top:1px solid var(--edge);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tab{min-height:65px;background:none;border:0;color:var(--muted);font-weight:650;font-size:13px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 .tab.selected{color:var(--fg)}.tab.selected:before{content:"";height:3px;position:absolute;top:0;left:22%;right:22%;background:var(--tint);border-radius:0 0 3px 3px}
 .compact{flex:none;margin-bottom:18px}.section-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 13px}
 .section-heading span{font-size:10px;font-weight:600;color:var(--muted)}.plot-wrap{flex:none;border:1px solid var(--edge);border-radius:12px;background:var(--card);padding:8px 6px;overflow:hidden}
@@ -48,8 +46,8 @@ th:first-child,td:first-child{text-align:left}tr.selected{background:var(--highl
 .backup-heading{margin-top:24px}.backup-actions{display:flex;gap:10px}.backup-actions>*{flex:1}.file-picker{display:flex;align-items:center;justify-content:center;font-size:14px;letter-spacing:normal;cursor:pointer}
 .import-preview{margin-top:13px;background:var(--card);border:1px solid var(--edge);border-radius:9px;padding:12px;font-size:13px;line-height:1.5}.import-preview .backup-actions{margin-top:12px}
 .config-status{font-size:12px;color:var(--muted);margin-top:13px;min-height:18px}
-@media (max-height:690px){.topbar{min-height:52px}.page{padding:14px}.meter-block{margin-top:20px}.meter-entry{margin:12px auto 16px}.result{margin-top:25px}.tape{height:59px}}
-@media (max-width:365px){.page{padding:13px}.topbar{padding-inline:13px}.tape{grid-template-columns:34px 1fr 1.05fr 1fr 34px}.tape-ghost{font-size:11px}.tape strong{font-size:17px}.two{gap:7px}.result output{font-size:40px}}
+@media (max-height:690px){.topbar{min-height:52px}.page{padding:14px}.meter-block{margin-top:20px}.meter-entry{margin:12px auto 16px}.result{margin-top:25px}.meter-select{height:59px}}
+@media (max-width:365px){.page{padding:13px}.topbar{padding-inline:13px}.meter-select{font-size:17px}.two{gap:7px}.result output{font-size:40px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 
 /* v1.1: field-sized linear plot and horizontal finger scrub */
@@ -62,3 +60,5 @@ th:first-child,td:first-child{text-align:left}tr.selected{background:var(--highl
 .graph-readout{border-bottom:1px solid #344553;min-height:44px;padding:10px 5px 11px;text-align:center;font-size:13px;font-weight:640;color:var(--tint);font-variant-numeric:tabular-nums}
 #plot{touch-action:none;user-select:none;-webkit-user-select:none}
 .plot-hint{font-size:11px;color:#a2b1be;padding:0 10px 8px;text-align:center}
+
+.tab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}

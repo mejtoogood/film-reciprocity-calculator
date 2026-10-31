@@ -1,10 +1,10 @@
-import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds,adjacentStops} from './core.mjs?v=1.3.0';
+import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds,meterChoice} from './core.mjs?v=1.3.1';
 
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
 const builtinIds = new Set(BUILTINS.map(f=>f.id));
 const METER_MAX=3600, METER_MIN=1;
-const defaults=()=>({customFilms:[],deletedFilmIds:[],selectedId:BUILTINS[0].id,meteredSeconds:30,graphRange:graphRangeFor(30)});
+const defaults=()=>({customFilms:[],deletedFilmIds:[],selectedId:BUILTINS[0].id,meteredSeconds:30,meterMode:'preset',graphRange:graphRangeFor(30)});
 let storageAvailable=true;
 let state=defaults(), activePage='graph', editingId=null, importCandidate=null;
 
@@ -38,6 +38,7 @@ function load(){
     const savedTime=Number(raw.meteredSeconds);
     state.meteredSeconds=Number.isFinite(savedTime)&&savedTime>0
       ? Math.max(METER_MIN,Math.min(METER_MAX,savedTime)) : 30;
+    state.meterMode=meterChoice(state.meteredSeconds,raw.meterMode??'preset')==='custom'?'custom':'preset';
     // Ignore old saved view choices so the first Graph visit shows the selected time.
     state.graphRange=graphRangeFor(state.meteredSeconds);
   }catch{storageAvailable=false}
@@ -62,35 +63,22 @@ function setFilm(id){
   state.graphRange=graphRangeFor(state.meteredSeconds);
   safeSave(); render();
 }
-function setMeter(t){
+function setMeter(t, mode='custom'){
   if(!getFilm())return;
   if(!Number.isFinite(t) || t<METER_MIN || t>METER_MAX)return;
-  if(state.meteredSeconds===t)return;
+  const nextMode=meterChoice(t,mode)==='custom'?'custom':'preset';
+  if(state.meteredSeconds===t && state.meterMode===nextMode)return;
   state.meteredSeconds=t;
-  // Reframe changes made outside Graph, or a selection that exceeds current view.
-  // Preserve a deliberately zoomed manual view while its current point still fits.
+  state.meterMode=nextMode;
   if(activePage!=='graph' || t>state.graphRange)state.graphRange=graphRangeFor(t);
   safeSave();renderCalc();renderGraph();renderTable();
-}
-function stepMeter(direction){
-  const i=nearestStop(state.meteredSeconds);
-  let target=i;
-  if(direction>0) target=STOPS[i]<=state.meteredSeconds*(1+1e-8)?i+1:i;
-  else target=STOPS[i]>=state.meteredSeconds*(1-1e-8)?i-1:i;
-  setMeter(STOPS[Math.min(STOPS.length-1,Math.max(0,target))]);
 }
 function renderCalc(){
   const film=getFilm(),t=state.meteredSeconds,r=film?corrected(film,t):null;
   if(document.activeElement!==$('meterInput')) $('meterInput').value=Number(t.toPrecision(10));
-  const {previous,next}=adjacentStops(t);
-  $('tapePrev').textContent=previous==null?'':formatTime(previous);
-  $('tapeCurrent').textContent=formatTime(t);
-  $('tapeNext').textContent=next==null?'':formatTime(next);
-  $('prevStop').disabled=previous==null;
-  $('nextStop').disabled=next==null;
   $('meterInput').disabled=!film;
-  $('prevStop').disabled=!film||previous==null;
-  $('nextStop').disabled=!film||next==null;
+  $('meterPreset').disabled=!film;
+  $('meterPreset').value=meterChoice(t,state.meterMode);
   $('correctedResult').textContent=r?.ok?formatTime(r.seconds):'—';
   $('evResult').textContent=r?.ok?formatEV(r.ev):r?'OUT OF RANGE':'';
   $('resultNotice').hidden=!!r?.ok;
@@ -330,7 +318,7 @@ function saveFilm(event){
  }catch(err){$('formError').textContent=err.message;$('formError').hidden=false}
 }
 function exportJson(){
- const data={schemaVersion:2,app:'reciprocity-meter',customFilms:state.customFilms,deletedFilmIds:state.deletedFilmIds,selectedId:state.selectedId,meteredSeconds:state.meteredSeconds,graphRange:state.graphRange};
+ const data={schemaVersion:2,app:'reciprocity-meter',customFilms:state.customFilms,deletedFilmIds:state.deletedFilmIds,selectedId:state.selectedId,meteredSeconds:state.meteredSeconds,meterMode:state.meterMode,graphRange:state.graphRange};
  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
  const href=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=href;a.download='reciprocity-meter-backup.json';document.body.append(a);a.click();a.remove();
@@ -358,7 +346,9 @@ async function prepareImport(event){
    const meter=Number(raw.meteredSeconds);
    if(!Number.isFinite(meter)||meter<=0||meter>METER_MAX)throw Error('Invalid metered exposure');
    const collisions=incoming.filter(f=>state.customFilms.some(o=>o.id===f.id)).length;
-   importCandidate={customFilms:incoming,deletedFilmIds,selectedId:selected,meteredSeconds:Math.max(1,meter),graphRange:graphRangeFor(Math.max(1,meter))};
+   const restoredMeter=Math.max(1,meter);
+   const meterMode=meterChoice(restoredMeter,raw.meterMode??'preset')==='custom'?'custom':'preset';
+   importCandidate={customFilms:incoming,deletedFilmIds,selectedId:selected,meteredSeconds:restoredMeter,meterMode,graphRange:graphRangeFor(restoredMeter)};
    $('importSummary').textContent='Import '+incoming.length+' saved profile(s) and '+deletedFilmIds.length+' deleted supplied film(s), replacing the current library. '+collisions+' matching saved ID(s).';
    $('importPreview').hidden=false;
  }catch(err){setStatus('Import rejected: '+err.message)}
@@ -387,25 +377,31 @@ function setPage(page){
    renderGraph();
  }
 }
+// Populate preset list once, including a permanently available Custom option.
+STOPS.forEach(t=>addOption($('meterPreset'),String(t),formatTime(t)));
+addOption($('meterPreset'),'custom','Custom');
 load();safeSave();
 $('filmCalc').addEventListener('change',e=>setFilm(e.target.value));
 $('filmGraph').addEventListener('change',e=>setFilm(e.target.value));
 $('meterInput').addEventListener('input',e=>{
   const v=Number(e.target.value);
-  if(e.target.value.trim()!=='' && Number.isFinite(v)&&v>=METER_MIN && v<=METER_MAX) setMeter(v);
+  if(e.target.value.trim()!=='' && Number.isFinite(v)&&v>=METER_MIN && v<=METER_MAX)
+    setMeter(v,'custom');
 });
-$('meterInput').addEventListener('blur',()=>{if(!(Number($('meterInput').value)>=METER_MIN && Number($('meterInput').value)<=METER_MAX))$('meterInput').value=state.meteredSeconds});
-$('prevStop').addEventListener('click',()=>stepMeter(-1));$('nextStop').addEventListener('click',()=>stepMeter(1));
-let drag=null;
-$('tape').addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag={x:e.clientX,i:nearestStop(state.meteredSeconds),id:e.pointerId};$('tape').setPointerCapture(e.pointerId)});
-$('tape').addEventListener('pointermove',e=>{
- if(!drag||drag.id!==e.pointerId)return;
- const steps=Math.trunc((drag.x-e.clientX)/27);
- if(!steps)return;
- const i=Math.max(0,Math.min(STOPS.length-1,drag.i+steps));
- if(STOPS[i]!==state.meteredSeconds)setMeter(STOPS[i]);
+$('meterInput').addEventListener('blur',()=>{
+  if(!(Number($('meterInput').value)>=METER_MIN && Number($('meterInput').value)<=METER_MAX))
+    $('meterInput').value=state.meteredSeconds;
 });
-for(const evt of ['pointerup','pointercancel','lostpointercapture'])$('tape').addEventListener(evt,()=>{drag=null});
+$('meterPreset').addEventListener('change',e=>{
+  const selection=e.target.value;
+  if(selection==='custom'){
+    setMeter(state.meteredSeconds,'custom');
+    $('meterInput').focus();
+    return;
+  }
+  const value=Number(selection);
+  if(STOPS.includes(value))setMeter(value,'preset');
+});
 $('plot').addEventListener('pointerdown',e=>{
  if(!getFilm())return;
  if(e.pointerType==='mouse' && e.button!==0)return;
@@ -425,7 +421,15 @@ $('graphRange').addEventListener('change',e=>{
  state.graphRange=next;
  safeSave();renderGraph();
 });
-$('plot').addEventListener('keydown',e=>{if(!getFilm())return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();stepMeter(e.key==='ArrowRight'?1:-1)}});
+$('plot').addEventListener('keydown',e=>{
+ if(!getFilm())return;
+ if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+   e.preventDefault();
+   const step=state.graphRange/100;
+   const next=Math.min(METER_MAX,Math.max(METER_MIN,Number((state.meteredSeconds+(e.key==='ArrowRight'?step:-step)).toPrecision(5))));
+   setMeter(next,'custom');
+ }
+});
 document.querySelectorAll('.tab').forEach(el=>el.addEventListener('click',()=>setPage(el.dataset.page)));
 $('addFilm').addEventListener('click',()=>editFilm(null,false));
 $('cancelEdit').addEventListener('click',()=>{$('editor').hidden=true;editingId=null});
