@@ -213,3 +213,9 @@ Removed unsolicited Kodak estimate warning text from Calc and the estimate suffi
 Calc retains direct numeric seconds entry above a native shutter-speed dropdown (1s–1h presets and **Custom**). Selecting a preset updates the calculator, curve and table. Selecting **Custom** focuses the numeric seconds field. A custom numeric entry or interaction with the curve/table chooses Custom, including when the value equals a preset. Meter mode is persisted in local state and included in JSON backups; older saved states infer the mode from their shutter value.
 
 The three tabs, in order, are **Curve**, **Calc**, and **Settings**, with line-chart, calculator and sliders icons.
+
+## v1.3.2 — Compact bottom navigation and iOS standalone viewport
+
+- Reduced bottom-tab content height from 65px to 49px, icon size from 20px to 18px, label size from 13px to 12px, and icon/label gap from 3px to 1px. The 49px controls retain adequate touch height.
+- In installed standalone mode, use full-height `100vh` for the shell and page root instead of `100dvh`, which can omit a status-bar-sized strip from the viewport on affected iOS 26/27 releases. Regular Safari keeps `100dvh` to avoid browser-toolbar overlap.
+- Preserve bottom safe-area padding within the nav for the iOS home indicator. Requires testing on an affected iPhone to confirm the WebKit viewport gap is eliminated.

@@ -18,8 +18,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--tint)}select{appearan
 .result{margin-top:clamp(32px,8dvh,90px);text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:122px}
 .result output{font-size:clamp(42px,10vw,62px);line-height:1.35;font-weight:730;letter-spacing:-.045em;white-space:nowrap}
 .ev-result{font-size:19px;color:var(--tint);font-weight:600;margin-top:4px}.result-notice{font-size:13px;color:var(--bad);margin-top:12px;max-width:280px}
-.bottom-nav{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;min-height:65px;background:#16212b;border-top:1px solid var(--edge);padding-bottom:env(safe-area-inset-bottom,0px)}
-.tab{min-height:65px;background:none;border:0;color:var(--muted);font-weight:650;font-size:13px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.bottom-nav{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;min-height:49px;background:#16212b;border-top:1px solid var(--edge);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tab{min-height:49px;background:none;border:0;color:var(--muted);font-weight:650;font-size:12px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
 .tab.selected{color:var(--fg)}.tab.selected:before{content:"";height:3px;position:absolute;top:0;left:22%;right:22%;background:var(--tint);border-radius:0 0 3px 3px}
 .compact{flex:none;margin-bottom:18px}.section-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 13px}
 .section-heading span{font-size:10px;font-weight:600;color:var(--muted)}.plot-wrap{flex:none;border:1px solid var(--edge);border-radius:12px;background:var(--card);padding:8px 6px;overflow:hidden}
@@ -61,4 +61,13 @@ th:first-child,td:first-child{text-align:left}tr.selected{background:var(--highl
 #plot{touch-action:none;user-select:none;-webkit-user-select:none}
 .plot-hint{font-size:11px;color:#a2b1be;padding:0 10px 8px;text-align:center}
 
-.tab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tab svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* iOS 26/27 standalone WebKit can size 100dvh short by the top status-bar inset,
+   leaving an unused 'chin' below the application. Keep dvh in normal Safari (where
+   browser chrome changes the visual height), but use the full viewport when installed.
+   The navbar itself retains padding for the home-indicator safe area. */
+@media (display-mode: standalone){
+  html,body{height:100vh}
+  .shell{height:100vh}
+}
