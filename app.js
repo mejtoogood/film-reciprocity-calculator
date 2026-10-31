@@ -1,4 +1,4 @@
-import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop} from './core.mjs';
+import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop} from './core.mjs?v=1.2.1';
 
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
@@ -322,17 +322,6 @@ function setPage(page){
    if(yes)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
  });
  if(page==='graph')renderGraph();
-}
-function onPlotPointer(event){
- const rect=$('plot').getBoundingClientRect();
- const x=(event.clientX-rect.left)/rect.width*340;
- const f=getFilm(),b=graphBounds;
- if(x<bounds.left-10||x>bounds.left+bounds.width+10)return;
- const ratio=Math.max(0,Math.min(1,(x-bounds.left)/bounds.width));
- const t=Math.exp(Math.log(b.minX)+ratio*Math.log(b.maxX/b.minX));
- const idx=nearestStop(t),candidate=STOPS[idx];
- const value=f.model==='table'?Math.max(b.minX,Math.min(b.maxX,candidate)):candidate;
- setMeter(value);
 }
 load();safeSave();
 $('filmCalc').addEventListener('change',e=>setFilm(e.target.value));

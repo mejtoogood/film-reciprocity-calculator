@@ -156,3 +156,7 @@ Run calculation tests with `node --test test-core.mjs`. The application is depen
 ## Field exposure range (v1.1)
 
 Metered inputs are capped at 3600 seconds (1 hour) with no cap on the calculated corrected exposure. The Sekonic L-308X selects ambient shutter speeds through 60s; the Reveni Labs Spot Meter lists shutter speeds to 1 hour. The Calc control extends to 1h for manual measurements or conversion. Graph defaults to 1 minute (or 1s for Gold 200); the displayed range is selectable.
+
+## Build checks
+
+An automated GitHub Actions check runs a native ES module syntax parse (including duplicate-declaration detection) and the correction engine tests. This catches startup syntax errors before approving further changes.
