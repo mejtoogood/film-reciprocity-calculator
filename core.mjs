@@ -190,3 +190,10 @@ export function nearestStop(t) {
   STOPS.forEach((v,i)=>{const d=Math.abs(Math.log(v/t));if(d<distance){best=i;distance=d}});
   return best;
 }
+
+// Smallest supported horizontal graph view containing a given metered exposure.
+export const GRAPH_RANGES=Object.freeze([15,60,300,900,3600]);
+export function graphRangeFor(t) {
+  if(!positive(t)) return 60;
+  return GRAPH_RANGES.find(range=>t<=range)||GRAPH_RANGES.at(-1);
+}

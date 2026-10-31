@@ -1,10 +1,10 @@
-import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop} from './core.mjs?v=1.2.1';
+import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES} from './core.mjs?v=1.2.3';
 
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
 const builtinIds = new Set(BUILTINS.map(f=>f.id));
 const METER_MAX=3600, METER_MIN=1/16000;
-const defaults=()=>({customFilms:[], selectedId:BUILTINS[0].id, meteredSeconds:30,graphRange:60});
+const defaults=()=>({customFilms:[], selectedId:BUILTINS[0].id, meteredSeconds:30,graphRange:graphRangeFor(30)});
 let storageAvailable=true;
 let state=defaults(), activePage='calc', editingId=null, importCandidate=null;
 
@@ -29,7 +29,8 @@ function load(){
     state.customFilms=customs;
     state.selectedId=getFilms().some(f=>f.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
     state.meteredSeconds=Number(raw.meteredSeconds)>=METER_MIN && Number(raw.meteredSeconds)<=METER_MAX?Number(raw.meteredSeconds):30;
-    state.graphRange=[1,15,60,300,900,3600].includes(raw.graphRange)?raw.graphRange:60;
+    // Ignore old saved view choices so the first Graph visit shows the selected time.
+    state.graphRange=graphRangeFor(state.meteredSeconds);
   }catch{storageAvailable=false}
 }
 function setStatus(message){$('configStatus').textContent=message}
@@ -45,14 +46,17 @@ function refillSelectors(){
 function setFilm(id){
   if(!getFilms().some(f=>f.id===id))return;
   state.selectedId=id;
-  if(getFilm().noBeyond)state.graphRange=1;
-  else if(state.graphRange===1)state.graphRange=60;
+  // A changed stock should never strand the current point off the graph.
+  state.graphRange=graphRangeFor(state.meteredSeconds);
   safeSave(); render();
 }
 function setMeter(t){
   if(!Number.isFinite(t) || t<METER_MIN || t>METER_MAX)return;
   if(state.meteredSeconds===t)return;
   state.meteredSeconds=t;
+  // Reframe changes made outside Graph, or a selection that exceeds current view.
+  // Preserve a deliberately zoomed manual view while its current point still fits.
+  if(activePage!=='graph' || t>state.graphRange)state.graphRange=graphRangeFor(t);
   safeSave();renderCalc();renderGraph();renderTable();
 }
 function stepMeter(direction){
@@ -119,7 +123,7 @@ function graphXStep(max){
 }
 function renderGraph(){
  const svg=$('plot'), f=getFilm(),t=state.meteredSeconds;
- graphRange=Number(state.graphRange)||60;
+ graphRange=GRAPH_RANGES.includes(state.graphRange)?state.graphRange:graphRangeFor(t);
  $('graphRange').value=String(graphRange);
  svg.replaceChildren();
  const limit=f.model==='table'?f.pairs.at(-1)[0]:graphRange;
@@ -313,7 +317,7 @@ async function prepareImport(event){
    const meter=Number(raw.meteredSeconds);
    if(!Number.isFinite(meter)||meter<METER_MIN||meter>METER_MAX)throw Error('Invalid metered exposure');
    const collisions=incoming.filter(f=>state.customFilms.some(o=>o.id===f.id)).length;
-   importCandidate={customFilms:incoming,selectedId:selected,meteredSeconds:meter,graphRange:[1,15,60,300,900,3600].includes(raw.graphRange)?raw.graphRange:60};
+   importCandidate={customFilms:incoming,selectedId:selected,meteredSeconds:meter,graphRange:graphRangeFor(meter)};
    $('importSummary').textContent='Import '+incoming.length+' custom film(s), replacing the current custom library ('+state.customFilms.length+' saved). '+collisions+' matching ID(s). Current film and exposure will be restored from the backup.';
    $('importPreview').hidden=false;
  }catch(err){setStatus('Import rejected: '+err.message)}
@@ -326,13 +330,20 @@ function commitImport(){
 function render(){refillSelectors();renderCalc();renderGraph();renderTable();renderLibrary()}
 function setPage(page){
  if(!['calc','graph','config'].includes(page))return;
+ const previousPage=activePage;
  activePage=page;
  document.querySelectorAll('.page').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));
  document.querySelectorAll('.tab').forEach(el=>{
    const yes=el.dataset.page===page;el.classList.toggle('selected',yes);
    if(yes)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
  });
- if(page==='graph')renderGraph();
+ if(page==='graph'){
+   if(previousPage!=='graph'){
+     state.graphRange=graphRangeFor(state.meteredSeconds);
+     safeSave();
+   }
+   renderGraph();
+ }
 }
 load();safeSave();
 $('filmCalc').addEventListener('change',e=>setFilm(e.target.value));
@@ -366,7 +377,9 @@ for(const evt of ['pointerup','pointercancel','lostpointercapture'])$('plot').ad
  if(draggingPlot===e.pointerId)draggingPlot=null;
 });
 $('graphRange').addEventListener('change',e=>{
- state.graphRange=Number(e.target.value);
+ const next=Number(e.target.value);
+ if(!GRAPH_RANGES.includes(next))return;
+ state.graphRange=next;
  safeSave();renderGraph();
 });
 $('plot').addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();stepMeter(e.key==='ArrowRight'?1:-1)}});

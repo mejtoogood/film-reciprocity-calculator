@@ -166,3 +166,7 @@ An automated GitHub Actions check runs a native ES module syntax parse (includin
 - Kodak Gold 200: provisional power-law exponent p=1.3, no correction through 1s; clearly marked as not Kodak-verified.
 - Exposure tape: hide duplicate values at the minimum and maximum ends, and disable the exhausted step control.
 - Graph axes: use recognisable time intervals (for example, 0/1/2/3/4/5 minutes on a 5-minute X view and 0/15/30/45/60 minutes on the Y axis when appropriate).
+
+## v1.2.3 — Graph auto-framing
+
+Entering Graph / Table automatically selects the smallest available X-axis view that contains the metered exposure (e.g. **10m → 15m**). Changes to the metered time outside the graph likewise reframe it, while deliberate manual selections on the graph are preserved until leaving the tab or selecting an exposure outside the current view. Supported views: **15s, 1m, 5m, 15m, 1h** (1s removed). Stored ranges from older versions are discarded to prevent offscreen current values.

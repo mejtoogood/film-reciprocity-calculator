@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS} from './core.mjs';
+import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES} from './core.mjs';
 
 test('Ilford manufacturer coefficients and provisional Kodak Gold 200',()=>{
  assert.deepEqual(BUILTINS.map(f=>f.iso),[50,100,400,400,200]);
@@ -46,4 +46,19 @@ test('field-oriented shutter steps and formatted display',()=>{
  assert.equal(STOPS[index+1],45);
  assert.equal(STOPS[index-1],20);
  assert.equal(formatTime(92.166),'1m 32s');
+});
+
+test('graph automatically frames the metered exposure',()=>{
+ assert.deepEqual(GRAPH_RANGES,[15,60,300,900,3600]);
+ assert.equal(graphRangeFor(1),15);
+ assert.equal(graphRangeFor(15),15);
+ assert.equal(graphRangeFor(16),60);
+ assert.equal(graphRangeFor(30),60);
+ assert.equal(graphRangeFor(60),60);
+ assert.equal(graphRangeFor(100),300);
+ assert.equal(graphRangeFor(300),300);
+ assert.equal(graphRangeFor(600),900); // 10m -> 15m
+ assert.equal(graphRangeFor(900),900);
+ assert.equal(graphRangeFor(901),3600);
+ assert.equal(graphRangeFor(3600),3600);
 });

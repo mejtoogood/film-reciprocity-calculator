@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Reciprocity">
 <meta name="description" content="Offline film reciprocity exposure calculator">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./icon.svg"><link rel="stylesheet" href="./styles.css?v=1.2.2">
+<link rel="apple-touch-icon" href="./icon.svg"><link rel="stylesheet" href="./styles.css?v=1.2.3">
 <title>Reciprocity Meter</title>
 </head><body>
 <div class="shell">
@@ -36,7 +36,7 @@
 </section>
 <section id="page-graph" class="page scroll-page" aria-label="Curve and table">
 <div class="film-control compact"><label for="filmGraph">FILM STOCK</label><select id="filmGraph" class="film-select"></select></div>
-<div class="section-heading graph-header"><span>RECIPROCITY CURVE</span><label class="range-control" for="graphRange">VIEW <select id="graphRange" aria-label="Horizontal graph range"><option value="1">1s</option><option value="15">15s</option><option value="60" selected>1m</option><option value="300">5m</option><option value="900">15m</option><option value="3600">1h</option></select></label></div>
+<div class="section-heading graph-header"><span>RECIPROCITY CURVE</span><label class="range-control" for="graphRange">VIEW <select id="graphRange" aria-label="Horizontal graph range"><option value="15">15s</option><option value="60" selected>1m</option><option value="300">5m</option><option value="900">15m</option><option value="3600">1h</option></select></label></div>
 <div class="plot-wrap">
   <svg id="plot" viewBox="0 0 360 280" role="img" aria-label="Corrected exposure against metered exposure. Touch and drag to select metered exposure." tabindex="0"></svg><div id="graphReadout" class="graph-readout" aria-live="off"></div>
 </div>
@@ -84,5 +84,5 @@
  <button class="tab" data-page="config" type="button">Config</button>
 </nav>
 </div>
-<script type="module" src="./app.js?v=1.2.2"></script>
+<script type="module" src="./app.js?v=1.2.3"></script>
 </body></html>
