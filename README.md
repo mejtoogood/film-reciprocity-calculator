@@ -196,3 +196,8 @@ The previous exposure label is explicitly empty at 1s and the next label explici
 ## v1.2.8
 
 Removed unsolicited Kodak estimate warning text from Calc and the estimate suffix from Graph. The configured p=1.3 factor and profile metadata are unchanged.
+
+## v1.2.9 — Film card controls
+
+- The source information appears **above** the action bar, with the selected data origin displayed as **Data origin: Manufacturer/User**, followed by a plain **Source** link when the film's Source URL is present.
+- The action bar is the **last row** of every film card: Select (if not selected), Edit, Duplicate, Delete. Commands have separate, bordered touch targets of at least 44 px height, with spacing and a dividing rule separating actions from the source link.

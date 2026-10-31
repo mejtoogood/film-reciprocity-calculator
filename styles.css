@@ -32,8 +32,12 @@ th:first-child,td:first-child{text-align:left}tr.selected{background:var(--highl
 .text-action{border:0;background:none;color:var(--tint);font-size:13px;font-weight:650;letter-spacing:normal;padding:8px 0}
 .film-library{display:flex;flex-direction:column;gap:9px}.film-card{border-radius:10px;border:1px solid var(--edge);background:var(--card);padding:13px}
 .film-card.is-active{border-color:#7c9fb9}.film-card strong{font-size:15px}.film-card .meta{font-size:12px;color:var(--muted);margin-top:4px}
-.film-card-actions{display:flex;gap:16px;margin-top:10px}.film-card-actions button{font-size:13px;border:0;background:none;padding:5px 0;color:var(--tint)}
-.film-card-actions button.danger{color:var(--bad)}.editor{margin-top:24px;border-top:1px solid var(--edge);padding-top:17px}
+.film-card-source{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;min-height:38px;margin-top:10px;color:var(--muted);font-size:13px}
+.film-card-source a{color:var(--tint);text-decoration:underline;text-underline-offset:3px;display:inline-flex;align-items:center;min-height:38px;padding:0 5px}
+.film-card-actions{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-top:12px;padding-top:14px;border-top:1px solid var(--edge)}
+.film-card-actions button{min-width:0;min-height:44px;border:1px solid var(--edge);border-radius:8px;background:var(--control);padding:8px 2px;font-size:13px;font-weight:600;color:var(--tint);white-space:nowrap}
+.film-card-actions button.danger{color:var(--bad)}
+.film-card-actions button:active{background:var(--highlight)}.editor{margin-top:24px;border-top:1px solid var(--edge);padding-top:17px}
 #filmForm{display:flex;flex-direction:column;gap:14px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 #filmForm label{letter-spacing:.035em}#filmForm label input,#filmForm label select,#filmForm label textarea{margin-top:8px;font-size:15px;font-weight:450;letter-spacing:normal}
 #filmForm label small{font-size:9px}#filmForm textarea{resize:vertical;min-height:85px;padding:12px;height:auto;line-height:1.4}

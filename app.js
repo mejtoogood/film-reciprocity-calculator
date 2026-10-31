@@ -1,4 +1,4 @@
-import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds,adjacentStops} from './core.mjs?v=1.2.8';
+import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds,adjacentStops} from './core.mjs?v=1.2.9';
 
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
@@ -251,6 +251,22 @@ function renderLibrary(){
    meta.className='meta';
    meta.textContent='ISO '+f.iso+' · '+(f.model==='power'?'Power law (p='+f.p+')':'Tabulated curve');
    card.append(meta);
+   // The source row is separate from the action bar and always precedes it.
+   const source=document.createElement('div');
+   source.className='film-card-source';
+   const origin=document.createElement('span');
+   origin.textContent='Data origin: '+(f.provenance==='manufacturer'?'Manufacturer':'User');
+   source.append(origin);
+   if(f.sourceUrl){
+     const link=document.createElement('a');
+     link.textContent='Source';
+     link.href=f.sourceUrl;
+     link.target='_blank';
+     link.rel='noopener noreferrer';
+     source.append(link);
+   }
+   card.append(source);
+
    const actions=document.createElement('div');
    actions.className='film-card-actions';
    if(f.id!==state.selectedId)actions.append(libraryButton('Select',()=>setFilm(f.id)));
@@ -258,18 +274,6 @@ function renderLibrary(){
    actions.append(libraryButton('Duplicate',()=>editFilm(f,true)));
    actions.append(libraryButton('Delete',()=>deleteFilm(f),'danger'));
    card.append(actions);
-   if(f.sourceUrl){
-     const source=document.createElement('div');
-     source.className='meta';
-     const link=document.createElement('a');
-     link.textContent='Source';
-     link.href=f.sourceUrl;
-     link.target='_blank';
-     link.rel='noopener noreferrer';
-     link.style.color='var(--tint)';
-     source.append(link);
-     card.append(source);
-   }
    lib.append(card);
  });
 }
