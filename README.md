@@ -1,6 +1,6 @@
 # Reciprocity Meter
 
-**Status:** Initial specification only — application not yet implemented.
+**Status:** First implementation deployed from the main branch to GitHub Pages.
 
 A compact, offline-first photographic film reciprocity compensation calculator for field use. Designed as a standalone, installable PWA for a phone, following the interaction and visual conventions of the existing [Zone Meter](https://github.com/mejtoogood/photography-zonesystem-simple-calculator) and [Flash Meter](https://github.com/mejtoogood/godox-it30pro-manualmode-helper) projects.
 
@@ -129,6 +129,26 @@ Manufacturer sources:
 8. Application operates offline after installation; app restart retains the last selected film and metered exposure.
 9. No countdown timer or other unrequested feature is present.
 
-## Project stage
+## First implementation
 
-Specification only. **Do not implement the UI, calculator, assets, or deployment configuration yet.** The next step is a review of this README, then implementation in a dedicated repository once agreed.
+The app is implemented as a static PWA and is deployed automatically when `main` changes through GitHub Pages (branch: `main`, folder: `/ (root)`).
+
+App: https://mejtoogood.github.io/film-reciprocity-calculator/
+
+Source files:
+- `index.html` — three-screen application shell
+- `styles.css` — layout and touch UI
+- `app.js` — state, profile editing, graphs, table and persistence
+- `core.mjs` — pure reciprocity calculations and profile validation
+- `test-core.mjs` — executable Node.js correction-model tests
+- `sw.js`, `manifest.webmanifest`, `icon.svg` — installable offline PWA
+
+Run calculation tests with `node --test test-core.mjs`. The application is dependency-free.
+
+### Current limitations
+
+- The only bundled film is Ilford PAN F Plus 50. Other films must be added with user-supplied source data.
+- The power-law domain limits are unknown where not published by the manufacturer.
+- No countdown timer is implemented, by design.
+- JSON backups are recommended because browser storage can be cleared.
+

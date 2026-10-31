@@ -101,13 +101,10 @@ export function validateFilm(raw) {
   return obj;
 }
 export function exposureStops() {
-  const bases=[1,1.25,1.6,2,2.5,3.2,4,5,6.3,8];
-  const out=[];
-  for(let exp=-5;exp<=4;exp++) for(const base of bases) {
-    const x=base*Math.pow(10,exp);
-    if(x>=1/16000 && x<=86400) out.push(Number(x.toPrecision(5)));
-  }
-  return [...new Set([...out,1/8000,1/4000,1/2000,1/1000,1/500,1/250,1/125,1/60,1/30,1/15,1/8,1/4,1/2,1,2,4,8,15,30,60,120,300,600,900,1800,3600,7200,14400,28800,86400].sort((a,b)=>a-b))];
+  // Familiar fractional shutter speeds, followed by field-friendly long exposures.
+  const fastDenominators=[16000,12800,10000,8000,6400,5000,4000,3200,2500,2000,1600,1250,1000,800,640,500,400,320,250,200,160,125,100,80,60,50,40,30,25,20,15,13,10,8,6,5,4,3,2];
+  const longTimes=[1,1.5,2,3,4,6,8,10,15,20,30,45,60,90,120,180,240,300,450,600,900,1200,1800,2700,3600,5400,7200,10800,14400,21600,28800,43200,86400];
+  return [...new Set([...fastDenominators.map(n=>1/n),...longTimes])].sort((a,b)=>a-b);
 }
 export const STOPS=exposureStops();
 export function nearestStop(t) {

@@ -257,7 +257,7 @@ async function prepareImport(event){
      if(!f.id || builtinIds.has(f.id) || seen.has(f.id))throw Error('Invalid or duplicate film ID');
      incoming.push(f);seen.add(f.id);
    }
-   const selected=getFilms().some(x=>x.id===raw.selectedId) || incoming.some(x=>x.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
+   const selected=builtinIds.has(raw.selectedId) || incoming.some(x=>x.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
    const meter=Number(raw.meteredSeconds);
    if(!Number.isFinite(meter)||meter<=0)throw Error('Invalid metered exposure');
    const collisions=incoming.filter(f=>state.customFilms.some(o=>o.id===f.id)).length;
