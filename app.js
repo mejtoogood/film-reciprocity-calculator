@@ -3,7 +3,7 @@ import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,gr
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
 const builtinIds = new Set(BUILTINS.map(f=>f.id));
-const METER_MAX=3600, METER_MIN=1/16000;
+const METER_MAX=3600, METER_MIN=1;
 const defaults=()=>({customFilms:[], selectedId:BUILTINS[0].id, meteredSeconds:30,graphRange:graphRangeFor(30)});
 let storageAvailable=true;
 let state=defaults(), activePage='calc', editingId=null, importCandidate=null;
@@ -28,7 +28,10 @@ function load(){
     }
     state.customFilms=customs;
     state.selectedId=getFilms().some(f=>f.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
-    state.meteredSeconds=Number(raw.meteredSeconds)>=METER_MIN && Number(raw.meteredSeconds)<=METER_MAX?Number(raw.meteredSeconds):30;
+    // Migrate older fractional-second readings to the new 1-second field minimum.
+    const savedTime=Number(raw.meteredSeconds);
+    state.meteredSeconds=Number.isFinite(savedTime)&&savedTime>0
+      ? Math.max(METER_MIN,Math.min(METER_MAX,savedTime)) : 30;
     // Ignore old saved view choices so the first Graph visit shows the selected time.
     state.graphRange=graphRangeFor(state.meteredSeconds);
   }catch{storageAvailable=false}
@@ -79,7 +82,7 @@ function renderCalc(){
   $('nextStop').disabled=next==null;
   $('correctedResult').textContent=r.ok?formatTime(r.seconds):'—';
   $('evResult').textContent=r.ok?formatEV(r.ev):'OUT OF RANGE';
-  const isEstimate=r.ok && getFilm().provenance==='community-estimate';
+  const isEstimate=r.ok && getFilm().id==='kodak-gold-200' && getFilm().provenance==='user';
   $('resultNotice').hidden=r.ok && !isEstimate;
   $('resultNotice').textContent=!r.ok?r.reason:isEstimate?'Provisional estimate · not Kodak-verified':'';
 }
@@ -179,7 +182,7 @@ function renderGraph(){
    svg.append(nodeSVG('circle',{cx:x,cy:y,r:5.5,class:'plot-point'}));
  }
  $('graphReadout').textContent=cr.ok
-   ?axisTime(t)+' metered  →  '+axisTime(cr.seconds)+' corrected  ·  '+formatEV(cr.ev)+(f.provenance==='community-estimate'?' · ESTIMATE':'')
+   ?axisTime(t)+' metered  →  '+axisTime(cr.seconds)+' corrected  ·  '+formatEV(cr.ev)+(f.id==='kodak-gold-200' && f.provenance==='user'?' · ESTIMATE':'')
    :axisTime(t)+' metered  ·  NO CORRECTION DATA';
 }
 function onPlotPointer(event){
@@ -194,7 +197,7 @@ function onPlotPointer(event){
  setMeter(t);
 }
 function tableTimes(t){
- const standard=[.5,1,2,4,8,15,30,60,120,300,600,900,1800,3600];
+ const standard=[1,2,4,8,15,30,60,120,300,600,900,1800,3600];
  return [...new Set([...standard,t])].sort((a,b)=>a-b);
 }
 function renderTable(){
@@ -219,44 +222,36 @@ function libraryButton(text,fn,style=''){
 function renderLibrary(){
  const lib=$('filmLibrary');lib.replaceChildren();
  getFilms().forEach(f=>{
-   const card=document.createElement('div');card.className='film-card'+(f.id===state.selectedId?' is-active':'');
-   const name=document.createElement('strong');name.textContent=f.manufacturer+' '+f.name;card.append(name);
-   const meta=document.createElement('div');meta.className='meta';
+   const card=document.createElement('div');
+   card.className='film-card'+(f.id===state.selectedId?' is-active':'');
+   const name=document.createElement('strong');
+   name.textContent=f.manufacturer+' '+f.name;
+   card.append(name);
+   const meta=document.createElement('div');
+   meta.className='meta';
    meta.textContent='ISO '+f.iso+' · '+(f.model==='power'?'Power law (p='+f.p+')':'Tabulated curve');
    card.append(meta);
-   const actions=document.createElement('div');actions.className='film-card-actions';
+   const actions=document.createElement('div');
+   actions.className='film-card-actions';
    if(f.id!==state.selectedId)actions.append(libraryButton('Select',()=>setFilm(f.id)));
    actions.append(libraryButton('Edit',()=>editFilm(f,false)));
    actions.append(libraryButton('Duplicate',()=>editFilm(f,true)));
-   if(builtinIds.has(f.id)){
-     if(state.customFilms.some(x=>x.id===f.id))
-       actions.append(libraryButton('Reset',()=>resetFilm(f),'danger'));
-   }else{
-     actions.append(libraryButton('Delete',()=>deleteFilm(f),'danger'));
-   }
+   if(!builtinIds.has(f.id))actions.append(libraryButton('Delete',()=>deleteFilm(f),'danger'));
    card.append(actions);
-   if(f.sourceUrl || f.provenance==='community-estimate'){
-     const info=document.createElement('div');info.className='meta';
-     info.textContent=f.provenance==='community-estimate'
-       ?'Provisional coefficient p='+f.p+' · not Kodak-verified. '
-       :f.provenance==='manufacturer' ? 'Source: manufacturer. ' : '';
-     if(f.sourceUrl){
-       const link=document.createElement('a');
-       link.textContent=f.provenance==='community-estimate'?'Kodak datasheet (1s threshold only)':'Technical source';
-       link.href=f.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';link.style.color='var(--tint)';
-       info.append(link);
-     }
-     card.append(info);
+   const source=document.createElement('div');
+   source.className='meta';
+   source.textContent='Source: '+(f.provenance==='manufacturer'?'Manufacturer':'User');
+   if(f.sourceUrl){
+     source.append(document.createTextNode(' · '));
+     const link=document.createElement('a');
+     link.textContent=f.id==='kodak-gold-200'?'Kodak datasheet (1s only)':'Technical source';
+     link.href=f.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';
+     link.style.color='var(--tint)';
+     source.append(link);
    }
+   card.append(source);
    lib.append(card);
  });
-}
-function resetFilm(f){
- if(!builtinIds.has(f.id))return;
- if(!window.confirm('Reset '+f.manufacturer+' '+f.name+' to the supplied values?'))return;
- state.customFilms=state.customFilms.filter(x=>x.id!==f.id);
- if(editingId===f.id){$('editor').hidden=true;editingId=null}
- safeSave();render();setStatus('Film reset to supplied values.');
 }
 function deleteFilm(f){
  if(builtinIds.has(f.id))return;
@@ -279,9 +274,7 @@ function editFilm(f,duplicate){
  $('fMin').value=f?.min??'';
  $('fMax').value=f?.max??'';
  $('fPairs').value=f?.pairs?.map(p=>p.join(',')).join('\n')??'';
- // A manual change to a supplied profile is not automatically manufacturer-verified.
- $('fProvenance').value=(f && builtinIds.has(f.id) && !state.customFilms.some(x=>x.id===f.id))
-   ? 'personal' : (f?.provenance??'personal');
+ $('fProvenance').value=f?.provenance==='manufacturer'?'manufacturer':'user';
  $('fDate').value=f?.sourceDate??'';
  $('fSource').value=f?.sourceTitle??'';
  $('fUrl').value=f?.sourceUrl??'';
@@ -334,9 +327,9 @@ async function prepareImport(event){
    }
    const selected=builtinIds.has(raw.selectedId) || incoming.some(x=>x.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
    const meter=Number(raw.meteredSeconds);
-   if(!Number.isFinite(meter)||meter<METER_MIN||meter>METER_MAX)throw Error('Invalid metered exposure');
+   if(!Number.isFinite(meter)||meter<=0||meter>METER_MAX)throw Error('Invalid metered exposure');
    const collisions=incoming.filter(f=>state.customFilms.some(o=>o.id===f.id)).length;
-   importCandidate={customFilms:incoming,selectedId:selected,meteredSeconds:meter,graphRange:graphRangeFor(meter)};
+   importCandidate={customFilms:incoming,selectedId:selected,meteredSeconds:Math.max(1,meter),graphRange:graphRangeFor(Math.max(1,meter))};
    $('importSummary').textContent='Import '+incoming.length+' saved film profile(s), replacing '+state.customFilms.length+' existing saved profile(s). '+collisions+' matching ID(s). Supplied films without saved changes retain their original values. Current film and exposure will be restored from the backup.';
    $('importPreview').hidden=false;
  }catch(err){setStatus('Import rejected: '+err.message)}

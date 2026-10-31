@@ -174,3 +174,10 @@ Entering Graph / Table automatically selects the smallest available X-axis view 
 ## v1.2.4 — Editable supplied profiles
 
 All films can be edited directly from Config. Changes to supplied films are stored locally under their original IDs rather than duplicating them in selection controls. A Reset control restores the packaged values when they have been modified. Profile badges are removed. JSON backup and restore includes user changes to supplied films; profiles not present in the backup retain their packaged defaults.
+
+## v1.2.5 — One-second minimum and simpler film origin
+
+- Metered exposure is limited to **1s–1h** in Calc, the exposure tape, and the reference table. Older locally saved fractional-second meter readings migrate to 1s; importing a legacy backup also clamps its meter time to 1s, preserving other data.
+- All supplied films remain editable. Changes are respected without a Reset action in the Config list.
+- Data Origin has exactly **Manufacturer** and **User**. The film cards always show `Source: Manufacturer` or `Source: User` based on that selected value.
+- Kodak Gold 200 initially uses **User** origin for the provisional p=1.3 estimate; Kodak's linked technical source supports only the no-correction threshold through 1s. Legacy origins (community-estimate, personal, digitised) are mapped to User when previously saved profiles are loaded or imported.

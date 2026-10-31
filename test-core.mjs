@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms} from './core.mjs';
+import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms,normalizeOrigin} from './core.mjs';
 
 test('Ilford manufacturer coefficients and provisional Kodak Gold 200',()=>{
  assert.deepEqual(BUILTINS.map(f=>f.iso),[50,100,400,400,200]);
@@ -8,7 +8,7 @@ test('Ilford manufacturer coefficients and provisional Kodak Gold 200',()=>{
  const gold=BUILTINS[4];
  assert.equal(gold.model,'power');
  assert.equal(gold.p,1.3);
- assert.equal(gold.provenance,'community-estimate');
+ assert.equal(gold.provenance,'user');
  assert.equal(corrected(gold,1).seconds,1);
  assert.ok(Math.abs(corrected(gold,30).seconds-Math.pow(30,1.3))<1e-8);
 });
@@ -84,4 +84,22 @@ test('saved edits survive JSON round-trip and user added films are retained',()=
  assert.equal(films.length,BUILTINS.length+1);
  assert.equal(films.find(f=>f.id==='kodak-gold-200').p,1.55);
  assert.ok(films.some(f=>f.id==='custom-example'));
+});
+
+test('metered exposure stop list begins at one second',()=>{
+ assert.equal(STOPS[0],1);
+ assert.ok(STOPS.every(t=>t>=1));
+ assert.equal(nearestStop(1),0);
+ assert.equal(STOPS.at(-1),3600);
+});
+test('data origin has precisely manufacturer and user categories',()=>{
+ assert.equal(normalizeOrigin('manufacturer'),'manufacturer');
+ assert.equal(normalizeOrigin('user'),'user');
+ for(const legacy of ['community-estimate','personal','digitised',undefined,'']) {
+   assert.equal(normalizeOrigin(legacy),'user');
+ }
+ const original=BUILTINS.find(f=>f.id==='kodak-gold-200');
+ assert.equal(original.provenance,'user');
+ assert.equal(validateFilm({...original,provenance:'digitised'}).provenance,'user');
+ assert.equal(validateFilm({...BUILTINS[0]}).provenance,'manufacturer');
 });

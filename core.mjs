@@ -77,7 +77,7 @@ export const BUILTINS = Object.freeze([
     "t0": 1,
     "min": null,
     "max": null,
-    "provenance": "community-estimate",
+    "provenance": "user",
     "sourceTitle": "Kodak GOLD 200 E-7022 (threshold only, not the exponent)",
     "sourceUrl": "https://www.kodakprofessional.com/sites/default/files/wysiwyg/E7022-1.pdf",
     "sourceDate": "2022-03",
@@ -87,6 +87,11 @@ export const BUILTINS = Object.freeze([
 ]);
 
 export function positive(n) { return typeof n === 'number' && Number.isFinite(n) && n > 0; }
+// Old saved profiles may say "personal", "digitised" or "community-estimate".
+// All non-manufacturer data originates with the user under the simplified scheme.
+export function normalizeOrigin(origin) {
+  return origin === 'manufacturer' ? 'manufacturer' : 'user';
+}
 export function interpolate(profile, t) {
   const pairs = profile.pairs;
   if (t < pairs[0][0] || t > pairs[pairs.length-1][0]) return null;
@@ -146,7 +151,7 @@ export function validateFilm(raw) {
   if(model!=='power' && model!=='table') throw Error('Choose a correction model');
   const obj={
     id: String(raw.id??''), manufacturer,name,iso,model,builtin:false,
-    provenance: String(raw.provenance??'personal').slice(0,40),
+    provenance: normalizeOrigin(raw.provenance),
     sourceTitle:String(raw.sourceTitle??'').trim().slice(0,200),
     sourceUrl:String(raw.sourceUrl??'').trim().slice(0,500),
     sourceDate:String(raw.sourceDate??'').trim().slice(0,30),
@@ -179,10 +184,8 @@ export function validateFilm(raw) {
   return obj;
 }
 export function exposureStops() {
-  // Speeds available from normal photo meters, plus practical Bulb-mode increments.
-  const denominators=[16000,12800,10000,8000,6400,5000,4000,3200,2500,2000,1600,1250,1000,800,640,500,400,320,250,200,160,125,100,80,60,50,40,30,25,20,15,13,10,8,6,5,4,3,2];
-  const longer=[1,1.5,2,3,4,6,8,10,15,20,30,45,60,90,120,180,240,300,450,600,900,1200,1800,2700,3600];
-  return [...new Set([...denominators.map(n=>1/n),...longer])].sort((a,b)=>a-b);
+  // Reciprocity field tool: minimum 1 second; keep longer Bulb times.
+  return [1,1.5,2,3,4,6,8,10,15,20,30,45,60,90,120,180,240,300,450,600,900,1200,1800,2700,3600];
 }
 export const STOPS=exposureStops();
 export function nearestStop(t) {

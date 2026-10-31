@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Reciprocity">
 <meta name="description" content="Offline film reciprocity exposure calculator">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./icon.svg"><link rel="stylesheet" href="./styles.css?v=1.2.4">
+<link rel="apple-touch-icon" href="./icon.svg"><link rel="stylesheet" href="./styles.css?v=1.2.5">
 <title>Reciprocity Meter</title>
 </head><body>
 <div class="shell">
@@ -18,7 +18,7 @@
 <div class="film-control"><label for="filmCalc">FILM STOCK</label><select id="filmCalc" class="film-select" aria-label="Film stock"></select></div>
 <div class="meter-block">
   <label for="meterInput" class="meter-label">METERED EXPOSURE <span>MAX 1h</span></label>
-  <div class="meter-entry"><input id="meterInput" type="number" min="0.0000625" max="3600" step="any" inputmode="decimal" value="30" aria-label="Metered exposure in seconds"><span>seconds</span></div>
+  <div class="meter-entry"><input id="meterInput" type="number" min="1" max="3600" step="any" inputmode="decimal" value="30" aria-label="Metered exposure in seconds"><span>seconds</span></div>
   <div id="tape" class="tape" aria-label="Exposure scrubber">
     <button type="button" id="prevStop" aria-label="Shorter metered exposure">−</button>
     <span id="tapePrev" class="tape-ghost">20s</span>
@@ -58,7 +58,7 @@
   <div id="tableFields" hidden>
    <label>TIME PAIRS <small>ONE METERED,CORRECTED PAIR PER LINE (SECONDS)</small><textarea id="fPairs" rows="7" spellcheck="false" placeholder="1,1&#10;2,2.5&#10;10,21"></textarea></label>
   </div>
-  <div class="two"><label>DATA ORIGIN<select id="fProvenance"><option value="manufacturer">Manufacturer</option><option value="digitised">Digitised curve</option><option value="personal">Personal measurements</option></select></label><label>SOURCE DATE<input id="fDate" placeholder="YYYY-MM"></label></div>
+  <div class="two"><label>DATA ORIGIN<select id="fProvenance"><option value="manufacturer">Manufacturer</option><option value="user">User</option></select></label><label>SOURCE DATE<input id="fDate" placeholder="YYYY-MM"></label></div>
   <label>SOURCE TITLE<input id="fSource" maxlength="200"></label>
   <label>SOURCE URL<input id="fUrl" type="url" placeholder="https://"></label>
   <label>NOTES<textarea id="fNotes" rows="3" maxlength="1500"></textarea></label>
@@ -84,5 +84,5 @@
  <button class="tab" data-page="config" type="button">Config</button>
 </nav>
 </div>
-<script type="module" src="./app.js?v=1.2.4"></script>
+<script type="module" src="./app.js?v=1.2.5"></script>
 </body></html>
