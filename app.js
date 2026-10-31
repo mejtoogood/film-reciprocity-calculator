@@ -3,7 +3,8 @@ import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop} f
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
 const builtinIds = new Set(BUILTINS.map(f=>f.id));
-const defaults=()=>({customFilms:[], selectedId:BUILTINS[0].id, meteredSeconds:30});
+const METER_MAX=3600, METER_MIN=1/16000;
+const defaults=()=>({customFilms:[], selectedId:BUILTINS[0].id, meteredSeconds:30,graphRange:60});
 let storageAvailable=true;
 let state=defaults(), activePage='calc', editingId=null, importCandidate=null;
 
@@ -27,7 +28,8 @@ function load(){
     }
     state.customFilms=customs;
     state.selectedId=getFilms().some(f=>f.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
-    state.meteredSeconds=Number(raw.meteredSeconds)>0 && Number.isFinite(Number(raw.meteredSeconds))?Number(raw.meteredSeconds):30;
+    state.meteredSeconds=Number(raw.meteredSeconds)>=METER_MIN && Number(raw.meteredSeconds)<=METER_MAX?Number(raw.meteredSeconds):30;
+    state.graphRange=[1,15,60,300,900,3600].includes(raw.graphRange)?raw.graphRange:60;
   }catch{storageAvailable=false}
 }
 function setStatus(message){$('configStatus').textContent=message}
@@ -43,12 +45,15 @@ function refillSelectors(){
 function setFilm(id){
   if(!getFilms().some(f=>f.id===id))return;
   state.selectedId=id;
+  if(getFilm().noBeyond)state.graphRange=1;
+  else if(state.graphRange===1)state.graphRange=60;
   safeSave(); render();
 }
 function setMeter(t){
-  if(!(t>0) || !Number.isFinite(t))return;
+  if(!Number.isFinite(t) || t<METER_MIN || t>METER_MAX)return;
+  if(state.meteredSeconds===t)return;
   state.meteredSeconds=t;
-  safeSave();render();
+  safeSave();renderCalc();renderGraph();renderTable();
 }
 function stepMeter(direction){
   const i=nearestStop(state.meteredSeconds);
@@ -77,71 +82,103 @@ function nodeSVG(tag,attrs={}){
  const n=document.createElementNS('http://www.w3.org/2000/svg',tag);
  Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));return n;
 }
-const bounds={left:45,top:12,width:278,height:218};
-let graphBounds={minX:.5,maxX:3600,minY:.5,maxY:3600};
-function graphDomain(f,t){
- let minX=.5,maxX=3600;
- if(f.model==='table'){minX=f.pairs[0][0];maxX=f.pairs.at(-1)[0]}
- else {
-  if(f.min!=null) minX=Math.max(minX,f.min);
-  if(f.max!=null) maxX=Math.min(maxX,f.max);
-  if(minX>=maxX) {minX=Math.max(.001,f.t0/10);maxX=Math.max(minX*5,f.max??3600)}
- }
- if(t>0 && f.model==='power' && (!f.max || t<=f.max) && (!f.min || t>=f.min)){
-   minX=Math.min(minX,t);maxX=Math.max(maxX,t);
- }
- const ys=[];
- for(let i=0;i<=100;i++){const x=Math.exp(Math.log(minX)+(Math.log(maxX)-Math.log(minX))*i/100);const r=corrected(f,x);if(r.ok) ys.push(r.seconds)}
- const minY=Math.min(minX, ...ys),maxY=Math.max(maxX, ...ys);
- return {minX,maxX,minY,maxY};
+// Plot on LINEAR time axes. A power-law reciprocity correction is a straight
+// line on log/log axes, which hid the curvature that matters in field use.
+const bounds={left:54,top:34,width:284,height:190};
+let graphRange=60;
+let draggingPlot=null;
+function axisTime(seconds){
+  if(seconds<0.001) return seconds.toPrecision(1)+'s';
+  if(seconds<1) return Number(seconds.toFixed(2))+'s';
+  if(seconds<60) return Number(seconds.toFixed(seconds<10?1:0))+'s';
+  if(seconds<3600){
+    const min=Math.floor(seconds/60),rem=Math.round(seconds-min*60);
+    if(rem===0)return min+'m';
+    if(min===0)return rem+'s';
+    return min+'m'+String(rem).padStart(2,'0')+'s';
+  }
+  const hours=Math.floor(seconds/3600),mins=Math.round((seconds-hours*3600)/60);
+  return mins?hours+'h'+mins+'m':hours+'h';
+}
+function graphYStep(y){
+ const target=Math.max(y,1e-6)/5;
+ const pow=Math.pow(10,Math.floor(Math.log10(target)));
+ const m=target/pow;
+ return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*pow;
 }
 function renderGraph(){
- const svg=$('plot'), f=getFilm(), t=state.meteredSeconds;
+ const svg=$('plot'), f=getFilm(),t=state.meteredSeconds;
+ graphRange=Number(state.graphRange)||60;
+ $('graphRange').value=String(graphRange);
  svg.replaceChildren();
- const b=graphDomain(f,t);graphBounds=b;
- const xScale=x=>bounds.left+Math.log(x/b.minX)/Math.log(b.maxX/b.minX)*bounds.width;
- const yScale=y=>bounds.top+bounds.height-Math.log(y/b.minY)/Math.log(b.maxY/b.minY)*bounds.height;
- const ticks=[.001,.01,.1,.5,1,2,5,10,30,60,120,300,600,1800,3600,7200,14400,28800,86400,172800,604800,8640000];
- const chooseTicks=(lo,hi)=>{
-   const items=ticks.filter(v=>v>=lo && v<=hi);
-   if(!items.length) return [lo,hi];
-   const n=Math.max(1,Math.ceil(items.length/6));
-   return items.filter((_,i)=>i%n===0);
+ const limit=f.model==='table'?f.pairs.at(-1)[0]:graphRange;
+ const yCandidates=[graphRange];
+ for(let i=0;i<=140;i++){
+   const x=Math.max(METER_MIN,graphRange*i/140);
+   const r=corrected(f,x);
+   if(r.ok)yCandidates.push(r.seconds);
+ }
+ const yPeak=Math.max(...yCandidates);
+ const step=graphYStep(yPeak);
+ const maxY=Math.ceil(yPeak/step)*step;
+ const sx=x=>bounds.left+(x/graphRange)*bounds.width;
+ const sy=y=>bounds.top+bounds.height-(y/maxY)*bounds.height;
+ const addLine=(x1,y1,x2,y2,style='plot-grid')=>svg.append(nodeSVG('line',{x1,y1,x2,y2,class:style}));
+ // Four or five uncluttered tick labels, with a dedicated margin for y labels.
+ for(let i=0;i<=4;i++){
+   const x=graphRange*i/4,xx=sx(x);
+   addLine(xx,bounds.top,xx,bounds.top+bounds.height);
+   svg.append(textSVG(xx,241,axisTime(x)));
+ }
+ const tickCount=Math.round(maxY/step);
+ for(let i=0;i<=tickCount;i++){
+   const y=i*step, yy=sy(y);
+   addLine(bounds.left,yy,bounds.left+bounds.width,yy);
+   svg.append(textSVG(bounds.left-10,yy+4,axisTime(y),'end'));
+ }
+ svg.append(textSVG(bounds.left,16,'CORRECTED','start'));
+ svg.append(textSVG(bounds.left+bounds.width/2,268,'METERED EXPOSURE'));
+ const sample=(fn,cls)=>{
+   let segments=[],points=[];
+   for(let i=0;i<=240;i++){
+     const x=Math.max(METER_MIN,graphRange*i/240);
+     const y=fn(x);
+     if(y==null || !Number.isFinite(y) || y>maxY){
+       if(points.length>1)segments.push(points);
+       points=[];continue;
+     }
+     points.push([sx(x),sy(y)]);
+   }
+   if(points.length>1)segments.push(points);
+   for(const segment of segments){
+     svg.append(nodeSVG('path',{class:cls,d:segment.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+','+y.toFixed(2)).join(' ')}));
+   }
  };
- for(const x of chooseTicks(b.minX,b.maxX)){
-   const sx=xScale(x);svg.append(nodeSVG('line',{x1:sx,x2:sx,y1:bounds.top,y2:bounds.top+bounds.height,class:'plot-grid'}));
-   svg.append(textSVG(sx,247,formatTime(x)));
- }
- for(const y of chooseTicks(b.minY,b.maxY)){
-   const sy=yScale(y);svg.append(nodeSVG('line',{x1:bounds.left,x2:bounds.left+bounds.width,y1:sy,y2:sy,class:'plot-grid'}));
-   svg.append(textSVG(37,sy+3,formatTime(y),'end'));
- }
- const pathFor=(points)=>{
-   return points.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+','+y.toFixed(2)).join(' ');
- };
- const diag=[];
- for(let i=0;i<=90;i++){const x=Math.exp(Math.log(b.minX)+(Math.log(b.maxX)-Math.log(b.minX))*i/90);if(x>=b.minY && x<=b.maxY)diag.push([xScale(x),yScale(x)])}
- svg.append(nodeSVG('path',{d:pathFor(diag),class:'plot-base'}));
- let curve=[],segments=[];
- for(let i=0;i<=170;i++){
-   const x=Math.exp(Math.log(b.minX)+(Math.log(b.maxX)-Math.log(b.minX))*i/170),r=corrected(f,x);
-   if(!r.ok){if(curve.length){segments.push(curve);curve=[]}continue}
-   curve.push([xScale(x),yScale(r.seconds)]);
- }
- if(curve.length)segments.push(curve);
- segments.forEach(s=>svg.append(nodeSVG('path',{d:pathFor(s),class:'plot-curve'})));
+ sample(x=>x,'plot-base');
+ sample(x=>{const r=corrected(f,x);return r.ok?r.seconds:null},'plot-curve');
  const cr=corrected(f,t);
- if(cr.ok && t>=b.minX && t<=b.maxX && cr.seconds>=b.minY && cr.seconds<=b.maxY){
-   const x=xScale(t),y=yScale(cr.seconds);
-   svg.append(nodeSVG('line',{x1:x,x2:x,y1:bounds.top,y2:bounds.top+bounds.height,stroke:'#708fa5','stroke-dasharray':'3 4'}));
+ if(cr.ok && t<=graphRange && cr.seconds<=maxY){
+   const x=sx(t),y=sy(cr.seconds);
+   addLine(x,bounds.top,x,bounds.top+bounds.height,'plot-selected-line');
    svg.append(nodeSVG('circle',{cx:x,cy:y,r:5.5,class:'plot-point'}));
  }
- svg.append(textSVG(bounds.left+bounds.width/2,264,'METERED EXPOSURE'));
- const ylabel=textSVG(12,bounds.top+bounds.height/2,'CORRECTED');
- ylabel.setAttribute('transform','rotate(-90 12 '+(bounds.top+bounds.height/2)+')');svg.append(ylabel);
+ $('graphReadout').textContent=cr.ok
+   ?axisTime(t)+' metered  →  '+axisTime(cr.seconds)+' corrected  ·  '+formatEV(cr.ev)
+   :axisTime(t)+' metered  ·  NO VERIFIED CORRECTION DATA';
+}
+function onPlotPointer(event){
+ const svg=$('plot');
+ const rect=svg.getBoundingClientRect();
+ const local=(event.clientX-rect.left)*360/rect.width;
+ const ratio=Math.min(1,Math.max(0,(local-bounds.left)/bounds.width));
+ let t=Math.max(METER_MIN,Math.min(METER_MAX,graphRange*ratio));
+ if(t>=10)t=Math.round(t);else if(t>=1)t=Math.round(t*10)/10;
+ else t=Number(t.toPrecision(2));
+ t=Math.max(METER_MIN,Math.min(METER_MAX,t));
+ setMeter(t);
 }
 function tableTimes(t){
- const standard=[.5,1,2,4,8,15,30,60,120,300,600,1200,1800,3600,7200,14400,28800];
+ const standard=[.5,1,2,4,8,15,30,60,120,300,600,900,1800,3600];
  return [...new Set([...standard,t])].sort((a,b)=>a-b);
 }
 function renderTable(){
@@ -179,8 +216,11 @@ function renderLibrary(){
      actions.append(libraryButton('Delete',()=>deleteFilm(f),'danger'));
    }
    card.append(actions);
-   if(f.id===state.selectedId && f.builtin){
-     const info=document.createElement('div');info.className='meta';info.textContent='Source: Ilford, December 2023 · threshold 1s (PAN F datasheet differs: ½s)';card.append(info);
+   if(f.builtin){
+     const info=document.createElement('div');info.className='meta';
+     info.textContent=f.noBeyond?'No verified correction beyond 1s. ':'Source: manufacturer · '+f.sourceDate+'. ';
+     const link=document.createElement('a');link.textContent='Technical source';link.href=f.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';link.style.color='var(--tint)';
+     info.append(link);card.append(info);
    }
    lib.append(card);
  });
@@ -192,6 +232,7 @@ function deleteFilm(f){
  safeSave();refillSelectors();render();setStatus('Film deleted.');
 }
 function editFilm(f,duplicate){
+ if(duplicate && f?.noBeyond){f={...f,model:'table',pairs:[[.0001,.0001],[1,1]],name:f.name+' custom'};}
  editingId=duplicate?null:f?.id??null;
  $('editor').hidden=false;
  $('editorHeading').textContent=duplicate?'DUPLICATE FILM':editingId?'EDIT FILM':'ADD FILM';
@@ -235,7 +276,7 @@ function saveFilm(event){
  }catch(err){$('formError').textContent=err.message;$('formError').hidden=false}
 }
 function exportJson(){
- const data={schemaVersion:1,app:'reciprocity-meter',customFilms:state.customFilms,selectedId:state.selectedId,meteredSeconds:state.meteredSeconds};
+ const data={schemaVersion:1,app:'reciprocity-meter',customFilms:state.customFilms,selectedId:state.selectedId,meteredSeconds:state.meteredSeconds,graphRange:state.graphRange};
  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
  const href=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=href;a.download='reciprocity-meter-backup.json';document.body.append(a);a.click();a.remove();
@@ -259,16 +300,16 @@ async function prepareImport(event){
    }
    const selected=builtinIds.has(raw.selectedId) || incoming.some(x=>x.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
    const meter=Number(raw.meteredSeconds);
-   if(!Number.isFinite(meter)||meter<=0)throw Error('Invalid metered exposure');
+   if(!Number.isFinite(meter)||meter<METER_MIN||meter>METER_MAX)throw Error('Invalid metered exposure');
    const collisions=incoming.filter(f=>state.customFilms.some(o=>o.id===f.id)).length;
-   importCandidate={customFilms:incoming,selectedId:selected,meteredSeconds:meter};
+   importCandidate={customFilms:incoming,selectedId:selected,meteredSeconds:meter,graphRange:[1,15,60,300,900,3600].includes(raw.graphRange)?raw.graphRange:60};
    $('importSummary').textContent='Import '+incoming.length+' custom film(s), replacing the current custom library ('+state.customFilms.length+' saved). '+collisions+' matching ID(s). Current film and exposure will be restored from the backup.';
    $('importPreview').hidden=false;
  }catch(err){setStatus('Import rejected: '+err.message)}
 }
 function commitImport(){
  if(!importCandidate)return;
- state={...importCandidate};importCandidate=null;$('importPreview').hidden=true;
+ state={...defaults(),...importCandidate};importCandidate=null;$('importPreview').hidden=true;
  safeSave();refillSelectors();render();setStatus('Backup imported.');
 }
 function render(){refillSelectors();renderCalc();renderGraph();renderTable();renderLibrary()}
@@ -298,9 +339,9 @@ $('filmCalc').addEventListener('change',e=>setFilm(e.target.value));
 $('filmGraph').addEventListener('change',e=>setFilm(e.target.value));
 $('meterInput').addEventListener('input',e=>{
   const v=Number(e.target.value);
-  if(e.target.value.trim()!=='' && Number.isFinite(v)&&v>0) setMeter(v);
+  if(e.target.value.trim()!=='' && Number.isFinite(v)&&v>=METER_MIN && v<=METER_MAX) setMeter(v);
 });
-$('meterInput').addEventListener('blur',()=>{if(!(Number($('meterInput').value)>0))$('meterInput').value=state.meteredSeconds});
+$('meterInput').addEventListener('blur',()=>{if(!(Number($('meterInput').value)>=METER_MIN && Number($('meterInput').value)<=METER_MAX))$('meterInput').value=state.meteredSeconds});
 $('prevStop').addEventListener('click',()=>stepMeter(-1));$('nextStop').addEventListener('click',()=>stepMeter(1));
 let drag=null;
 $('tape').addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag={x:e.clientX,i:nearestStop(state.meteredSeconds),id:e.pointerId};$('tape').setPointerCapture(e.pointerId)});
@@ -312,7 +353,22 @@ $('tape').addEventListener('pointermove',e=>{
  if(STOPS[i]!==state.meteredSeconds)setMeter(STOPS[i]);
 });
 for(const evt of ['pointerup','pointercancel','lostpointercapture'])$('tape').addEventListener(evt,()=>{drag=null});
-$('plot').addEventListener('pointerdown',onPlotPointer);
+$('plot').addEventListener('pointerdown',e=>{
+ if(e.pointerType==='mouse' && e.button!==0)return;
+ draggingPlot=e.pointerId;
+ $('plot').setPointerCapture(e.pointerId);
+ onPlotPointer(e);
+});
+$('plot').addEventListener('pointermove',e=>{
+ if(draggingPlot===e.pointerId)onPlotPointer(e);
+});
+for(const evt of ['pointerup','pointercancel','lostpointercapture'])$('plot').addEventListener(evt,e=>{
+ if(draggingPlot===e.pointerId)draggingPlot=null;
+});
+$('graphRange').addEventListener('change',e=>{
+ state.graphRange=Number(e.target.value);
+ safeSave();renderGraph();
+});
 $('plot').addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();stepMeter(e.key==='ArrowRight'?1:-1)}});
 document.querySelectorAll('.tab').forEach(el=>el.addEventListener('click',()=>setPage(el.dataset.page)));
 $('addFilm').addEventListener('click',()=>editFilm(null,false));

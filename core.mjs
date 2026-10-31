@@ -1,12 +1,97 @@
-export const BUILTINS = Object.freeze([{
-  id: 'ilford-pan-f-plus-50', manufacturer: 'Ilford', name: 'PAN F Plus 50',
-  iso: 50, model: 'power', p: 1.33, t0: 1, min: null, max: null,
-  provenance: 'manufacturer', sourceTitle: 'Film Reciprocity Failure Compensation',
-  sourceUrl: 'https://www.ilfordphoto.com/amfile/file/download/file/1964/product/2246/',
-  sourceDate: '2023-12',
-  notes: '2023 general sheet: no correction at 1 s or less; PAN F Plus datasheet specifies a 1/2 s threshold. The 2023 sheet is used here.',
-  builtin: true
-}]);
+export const BUILTINS = Object.freeze([
+  {
+    "id": "ilford-pan-f-plus-50",
+    "manufacturer": "Ilford",
+    "name": "PAN F Plus 50",
+    "iso": 50,
+    "model": "power",
+    "p": 1.33,
+    "t0": 1,
+    "min": null,
+    "max": null,
+    "provenance": "manufacturer",
+    "sourceTitle": "Ilford Film Reciprocity Failure Compensation",
+    "sourceUrl": "https://www.ilfordphoto.com/wp/wp-content/uploads/2024/05/Reciprocity-Failure-Compensation-v2.pdf",
+    "sourceDate": "2023-12",
+    "notes": "Ilford's general compensation sheet uses a 1s threshold; the PAN F Plus datasheet describes a 1/2s threshold. This calculator uses the December 2023 sheet.",
+    "builtin": true
+  },
+  {
+    "id": "ilford-delta-100",
+    "manufacturer": "Ilford",
+    "name": "Delta 100 Professional",
+    "iso": 100,
+    "model": "power",
+    "p": 1.26,
+    "t0": 1,
+    "min": null,
+    "max": null,
+    "provenance": "manufacturer",
+    "sourceTitle": "Ilford Film Reciprocity Failure Compensation",
+    "sourceUrl": "https://www.ilfordphoto.com/wp/wp-content/uploads/2024/05/Reciprocity-Failure-Compensation-v2.pdf",
+    "sourceDate": "2023-12",
+    "notes": "",
+    "builtin": true
+  },
+  {
+    "id": "ilford-delta-400",
+    "manufacturer": "Ilford",
+    "name": "Delta 400 Professional",
+    "iso": 400,
+    "model": "power",
+    "p": 1.41,
+    "t0": 1,
+    "min": null,
+    "max": null,
+    "provenance": "manufacturer",
+    "sourceTitle": "Ilford Film Reciprocity Failure Compensation",
+    "sourceUrl": "https://www.ilfordphoto.com/wp/wp-content/uploads/2024/05/Reciprocity-Failure-Compensation-v2.pdf",
+    "sourceDate": "2023-12",
+    "notes": "",
+    "builtin": true
+  },
+  {
+    "id": "ilford-hp5-plus-400",
+    "manufacturer": "Ilford",
+    "name": "HP5 Plus 400",
+    "iso": 400,
+    "model": "power",
+    "p": 1.31,
+    "t0": 1,
+    "min": null,
+    "max": null,
+    "provenance": "manufacturer",
+    "sourceTitle": "Ilford Film Reciprocity Failure Compensation",
+    "sourceUrl": "https://www.ilfordphoto.com/wp/wp-content/uploads/2024/05/Reciprocity-Failure-Compensation-v2.pdf",
+    "sourceDate": "2023-12",
+    "notes": "",
+    "builtin": true
+  },
+  {
+    "id": "kodak-gold-200",
+    "manufacturer": "Kodak",
+    "name": "Gold 200",
+    "iso": 200,
+    "model": "table",
+    "pairs": [
+      [
+        0.0001,
+        0.0001
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "noBeyond": 1,
+    "provenance": "manufacturer",
+    "sourceTitle": "Kodak GOLD 200 technical data E-7022",
+    "sourceUrl": "https://www.kodakprofessional.com/sites/default/files/wysiwyg/E7022-1.pdf",
+    "sourceDate": "2022-03",
+    "notes": "Kodak specifies no exposure/filter adjustment from 1/10000 to 1 second, and recommends testing for longer exposures. No manufacturer correction curve or exponent is published for exposures over 1 second.",
+    "builtin": true
+  }
+]);
 
 export function positive(n) { return typeof n === 'number' && Number.isFinite(n) && n > 0; }
 export function interpolate(profile, t) {
@@ -34,7 +119,7 @@ export function corrected(profile, t) {
   }
   if (profile.model === 'table') {
     const seconds = interpolate(profile,t);
-    return seconds == null ? {ok:false,reason:'Outside supplied data range'} :
+    return seconds == null ? {ok:false,reason:profile.noBeyond && t>profile.noBeyond ? 'Kodak publishes no correction data above 1s' : 'Outside supplied data range'} :
       {ok:true, seconds, ev:Math.log2(seconds/t)};
   }
   return {ok:false, reason:'Unknown model'};
@@ -101,10 +186,10 @@ export function validateFilm(raw) {
   return obj;
 }
 export function exposureStops() {
-  // Familiar fractional shutter speeds, followed by field-friendly long exposures.
-  const fastDenominators=[16000,12800,10000,8000,6400,5000,4000,3200,2500,2000,1600,1250,1000,800,640,500,400,320,250,200,160,125,100,80,60,50,40,30,25,20,15,13,10,8,6,5,4,3,2];
-  const longTimes=[1,1.5,2,3,4,6,8,10,15,20,30,45,60,90,120,180,240,300,450,600,900,1200,1800,2700,3600,5400,7200,10800,14400,21600,28800,43200,86400];
-  return [...new Set([...fastDenominators.map(n=>1/n),...longTimes])].sort((a,b)=>a-b);
+  // Speeds available from normal photo meters, plus practical Bulb-mode increments.
+  const denominators=[16000,12800,10000,8000,6400,5000,4000,3200,2500,2000,1600,1250,1000,800,640,500,400,320,250,200,160,125,100,80,60,50,40,30,25,20,15,13,10,8,6,5,4,3,2];
+  const longer=[1,1.5,2,3,4,6,8,10,15,20,30,45,60,90,120,180,240,300,450,600,900,1200,1800,2700,3600];
+  return [...new Set([...denominators.map(n=>1/n),...longer])].sort((a,b)=>a-b);
 }
 export const STOPS=exposureStops();
 export function nearestStop(t) {

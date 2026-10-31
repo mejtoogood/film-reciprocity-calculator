@@ -1,4 +1,4 @@
-const CACHE='reciprocity-meter-v1';
+const CACHE='reciprocity-meter-v1.1';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./core.mjs','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));

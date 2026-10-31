@@ -17,8 +17,8 @@
 <section id="page-calc" class="page active" aria-label="Exposure calculator">
 <div class="film-control"><label for="filmCalc">FILM STOCK</label><select id="filmCalc" class="film-select" aria-label="Film stock"></select></div>
 <div class="meter-block">
-  <label for="meterInput">METERED EXPOSURE</label>
-  <div class="meter-entry"><input id="meterInput" type="number" min="0.00001" step="any" inputmode="decimal" value="30" aria-label="Metered exposure in seconds"><span>seconds</span></div>
+  <label for="meterInput" class="meter-label">METERED EXPOSURE <span>MAX 1h</span></label>
+  <div class="meter-entry"><input id="meterInput" type="number" min="0.0000625" max="3600" step="any" inputmode="decimal" value="30" aria-label="Metered exposure in seconds"><span>seconds</span></div>
   <div id="tape" class="tape" aria-label="Exposure scrubber">
     <button type="button" id="prevStop" aria-label="Shorter metered exposure">−</button>
     <span id="tapePrev" class="tape-ghost">20s</span>
@@ -36,9 +36,9 @@
 </section>
 <section id="page-graph" class="page scroll-page" aria-label="Curve and table">
 <div class="film-control compact"><label for="filmGraph">FILM STOCK</label><select id="filmGraph" class="film-select"></select></div>
-<div class="section-heading">RECIPROCITY CURVE <span>LOG / LOG</span></div>
+<div class="section-heading graph-header"><span>RECIPROCITY CURVE</span><label class="range-control" for="graphRange">VIEW <select id="graphRange" aria-label="Horizontal graph range"><option value="1">1s</option><option value="15">15s</option><option value="60" selected>1m</option><option value="300">5m</option><option value="900">15m</option><option value="3600">1h</option></select></label></div>
 <div class="plot-wrap">
-  <svg id="plot" viewBox="0 0 340 270" role="img" aria-label="Metered against corrected exposure curve. Tap to select a metered exposure." tabindex="0"></svg>
+  <svg id="plot" viewBox="0 0 360 280" role="img" aria-label="Corrected exposure against metered exposure. Touch and drag to select metered exposure." tabindex="0"></svg><div id="graphReadout" class="graph-readout" aria-live="off"></div>
 </div>
 <div class="section-heading table-heading">REFERENCE TABLE <span>SELECT A ROW</span></div>
 <div class="table-wrap"><table><thead><tr><th>METERED</th><th>CORRECTED</th><th>+ EV</th></tr></thead><tbody id="referenceBody"></tbody></table></div>

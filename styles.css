@@ -47,3 +47,14 @@ th:first-child,td:first-child{text-align:left}tr.selected{background:var(--highl
 @media (max-height:690px){.topbar{min-height:52px}.page{padding:14px}.meter-block{margin-top:20px}.meter-entry{margin:12px auto 16px}.result{margin-top:25px}.tape{height:59px}}
 @media (max-width:365px){.page{padding:13px}.topbar{padding-inline:13px}.tape{grid-template-columns:34px 1fr 1.05fr 1fr 34px}.tape-ghost{font-size:11px}.tape strong{font-size:17px}.two{gap:7px}.result output{font-size:40px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* v1.1: field-sized linear plot and horizontal finger scrub */
+.meter-label{position:relative;display:flex;align-items:center;justify-content:center;gap:14px}
+.meter-label span{font-size:10px;color:#708b9c;font-weight:600}
+.graph-header{min-height:35px}
+.graph-header>span{font-size:11px;letter-spacing:.09em;font-weight:700;color:var(--muted)}
+.range-control{display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.08em;font-weight:700;color:var(--muted)}
+.range-control select{width:auto;height:32px;padding:2px 5px;font-size:12px;border-radius:7px;letter-spacing:normal}
+.graph-readout{border-top:1px solid #344553;min-height:39px;padding:11px 8px 5px;text-align:center;font-size:13px;font-weight:640;color:var(--tint);font-variant-numeric:tabular-nums}
+#plot{touch-action:none;user-select:none;-webkit-user-select:none}
+.plot-hint{font-size:11px;color:#a2b1be;padding:0 10px 8px;text-align:center}
