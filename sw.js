@@ -1,5 +1,5 @@
-const CACHE='reciprocity-meter-v1.2.5';
-const ASSETS=['./','./index.html','./styles.css?v=1.2.5','./app.js?v=1.2.5','./core.mjs?v=1.2.5','./manifest.webmanifest','./icon.svg'];
+const CACHE='reciprocity-meter-v1.2.6';
+const ASSETS=['./','./index.html','./styles.css?v=1.2.6','./app.js?v=1.2.6','./core.mjs?v=1.2.6','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
 });

@@ -204,11 +204,16 @@ export function graphRangeFor(t) {
 /** Compose the supplied defaults with locally saved edits and user-added profiles.
  *  An edited supplied stock retains its stable ID; the original remains available for Reset.
  */
-export function effectiveFilms(defaults, saved) {
+export function effectiveFilms(defaults, saved, deletedIds = []) {
+  const hidden = new Set(deletedIds);
   const savedById = new Map(saved.map(f => [f.id, f]));
   const defaultIds = new Set(defaults.map(f => f.id));
   return [
-    ...defaults.map(base => savedById.get(base.id) ?? base),
-    ...saved.filter(f => !defaultIds.has(f.id))
+    ...defaults.filter(base => !hidden.has(base.id)).map(base => savedById.get(base.id) ?? base),
+    ...saved.filter(f => !hidden.has(f.id) && !defaultIds.has(f.id))
   ];
+}
+export function validDeletedIds(ids, defaults) {
+  const known = new Set(defaults.map(f => f.id));
+  return Array.isArray(ids) ? [...new Set(ids.filter(id => typeof id === 'string' && known.has(id)))] : [];
 }

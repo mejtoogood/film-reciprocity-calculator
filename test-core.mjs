@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms,normalizeOrigin} from './core.mjs';
+import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms,normalizeOrigin,validDeletedIds} from './core.mjs';
 
 test('Ilford manufacturer coefficients and provisional Kodak Gold 200',()=>{
  assert.deepEqual(BUILTINS.map(f=>f.iso),[50,100,400,400,200]);
@@ -102,4 +102,24 @@ test('data origin has precisely manufacturer and user categories',()=>{
  assert.equal(original.provenance,'user');
  assert.equal(validateFilm({...original,provenance:'digitised'}).provenance,'user');
  assert.equal(validateFilm({...BUILTINS[0]}).provenance,'manufacturer');
+});
+
+test('deleting a supplied film persists and never implicitly reinstates it',()=>{
+ const deleted=['ilford-pan-f-plus-50','kodak-gold-200'];
+ const films=effectiveFilms(BUILTINS,[],deleted);
+ assert.equal(films.length,BUILTINS.length-2);
+ assert.ok(!films.some(f=>deleted.includes(f.id)));
+ assert.deepEqual(effectiveFilms(BUILTINS,[],BUILTINS.map(f=>f.id)),[]);
+});
+test('deletion overrides user edits of supplied films',()=>{
+ const edited=validateFilm({...BUILTINS[0],p:1.7});
+ assert.equal(effectiveFilms(BUILTINS,[edited],[])[0].p,1.7);
+ assert.ok(!effectiveFilms(BUILTINS,[edited],[edited.id]).some(f=>f.id===edited.id));
+});
+test('deleted stock IDs validate and survive backups',()=>{
+ const deleted=BUILTINS.map(f=>f.id);
+ const backup=JSON.parse(JSON.stringify({schemaVersion:2,customFilms:[],deletedFilmIds:deleted}));
+ assert.deepEqual(validDeletedIds(backup.deletedFilmIds,BUILTINS),deleted);
+ assert.deepEqual(validDeletedIds(['invalid',deleted[0],deleted[0]],BUILTINS),[deleted[0]]);
+ assert.deepEqual(validDeletedIds(undefined,BUILTINS),[]);
 });

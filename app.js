@@ -1,15 +1,19 @@
-import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms} from './core.mjs?v=1.2.4';
+import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds} from './core.mjs?v=1.2.6';
 
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
 const builtinIds = new Set(BUILTINS.map(f=>f.id));
 const METER_MAX=3600, METER_MIN=1;
-const defaults=()=>({customFilms:[], selectedId:BUILTINS[0].id, meteredSeconds:30,graphRange:graphRangeFor(30)});
+const defaults=()=>({customFilms:[],deletedFilmIds:[],selectedId:BUILTINS[0].id,meteredSeconds:30,graphRange:graphRangeFor(30)});
 let storageAvailable=true;
 let state=defaults(), activePage='calc', editingId=null, importCandidate=null;
 
-function getFilms(){return effectiveFilms(BUILTINS,state.customFilms)}
-function getFilm(){return getFilms().find(f=>f.id===state.selectedId)||BUILTINS[0]}
+function getFilms(){return effectiveFilms(BUILTINS,state.customFilms,state.deletedFilmIds)}
+function getFilm(){return getFilms().find(f=>f.id===state.selectedId)||null}
+function reconcileSelection(){
+  const films=getFilms();
+  if(!films.some(f=>f.id===state.selectedId))state.selectedId=films[0]?.id??null;
+}
 function safeSave(){
   try{localStorage.setItem(STORAGE,JSON.stringify(state));storageAvailable=true}
   catch{storageAvailable=false}
@@ -27,7 +31,9 @@ function load(){
       } catch {}
     }
     state.customFilms=customs;
-    state.selectedId=getFilms().some(f=>f.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
+    state.deletedFilmIds=validDeletedIds(raw.deletedFilmIds,BUILTINS);
+    state.selectedId=raw.selectedId??null;
+    reconcileSelection();
     // Migrate older fractional-second readings to the new 1-second field minimum.
     const savedTime=Number(raw.meteredSeconds);
     state.meteredSeconds=Number.isFinite(savedTime)&&savedTime>0
@@ -42,8 +48,11 @@ function addOption(select,id,label){const option=document.createElement('option'
 function refillSelectors(){
   for(const select of [$('filmCalc'),$('filmGraph')]){
     select.replaceChildren();
-    getFilms().forEach(f=>addOption(select,f.id,f.manufacturer+' '+f.name));
-    select.value=state.selectedId;
+    const films=getFilms();
+    if(!films.length)addOption(select,'','No films — add in Config');
+    else films.forEach(f=>addOption(select,f.id,f.manufacturer+' '+f.name));
+    select.value=state.selectedId??'';
+    select.disabled=!films.length;
   }
 }
 function setFilm(id){
@@ -54,6 +63,7 @@ function setFilm(id){
   safeSave(); render();
 }
 function setMeter(t){
+  if(!getFilm())return;
   if(!Number.isFinite(t) || t<METER_MIN || t>METER_MAX)return;
   if(state.meteredSeconds===t)return;
   state.meteredSeconds=t;
@@ -70,7 +80,7 @@ function stepMeter(direction){
   setMeter(STOPS[Math.min(STOPS.length-1,Math.max(0,target))]);
 }
 function renderCalc(){
-  const t=state.meteredSeconds, r=corrected(getFilm(),t);
+  const film=getFilm(),t=state.meteredSeconds,r=film?corrected(film,t):null;
   if(document.activeElement!==$('meterInput')) $('meterInput').value=Number(t.toPrecision(10));
   const index=nearestStop(t);
   const previous=STOPS.slice().reverse().find(v=>v<t*(1-1e-10));
@@ -80,11 +90,14 @@ function renderCalc(){
   $('tapeNext').textContent=next==null?'':formatTime(next);
   $('prevStop').disabled=previous==null;
   $('nextStop').disabled=next==null;
-  $('correctedResult').textContent=r.ok?formatTime(r.seconds):'—';
-  $('evResult').textContent=r.ok?formatEV(r.ev):'OUT OF RANGE';
-  const isEstimate=r.ok && getFilm().id==='kodak-gold-200' && getFilm().provenance==='user';
-  $('resultNotice').hidden=r.ok && !isEstimate;
-  $('resultNotice').textContent=!r.ok?r.reason:isEstimate?'Provisional estimate · not Kodak-verified':'';
+  $('meterInput').disabled=!film;
+  $('prevStop').disabled=!film||previous==null;
+  $('nextStop').disabled=!film||next==null;
+  $('correctedResult').textContent=r?.ok?formatTime(r.seconds):'—';
+  $('evResult').textContent=r?.ok?formatEV(r.ev):r?'OUT OF RANGE':'';
+  const isEstimate=r?.ok && film.id==='kodak-gold-200' && film.provenance==='user';
+  $('resultNotice').hidden=!!r?.ok && !isEstimate;
+  $('resultNotice').textContent=!film?'Add a film in Config':!r.ok?r.reason:isEstimate?'Provisional estimate · not Kodak-verified':'';
 }
 function textSVG(x,y,str,anchor='middle'){
  const n=document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -129,7 +142,10 @@ function renderGraph(){
  graphRange=GRAPH_RANGES.includes(state.graphRange)?state.graphRange:graphRangeFor(t);
  $('graphRange').value=String(graphRange);
  svg.replaceChildren();
- const limit=f.model==='table'?f.pairs.at(-1)[0]:graphRange;
+ if(!f){
+   $('graphReadout').textContent='Add a film in Config';
+   return;
+ }
  const yCandidates=[graphRange];
  for(let i=0;i<=140;i++){
    const x=Math.max(METER_MIN,graphRange*i/140);
@@ -203,6 +219,7 @@ function tableTimes(t){
 function renderTable(){
  const body=$('referenceBody');body.replaceChildren();
  const f=getFilm(),t=state.meteredSeconds;
+ if(!f)return;
  for(const x of tableTimes(t)){
    const r=corrected(f,x);
    const tr=document.createElement('tr');
@@ -221,6 +238,12 @@ function libraryButton(text,fn,style=''){
 }
 function renderLibrary(){
  const lib=$('filmLibrary');lib.replaceChildren();
+ if(!getFilms().length){
+   const empty=document.createElement('div');
+   empty.className='meta';
+   empty.textContent='No films. Use Add film to create one.';
+   lib.append(empty);
+ }
  getFilms().forEach(f=>{
    const card=document.createElement('div');
    card.className='film-card'+(f.id===state.selectedId?' is-active':'');
@@ -236,29 +259,31 @@ function renderLibrary(){
    if(f.id!==state.selectedId)actions.append(libraryButton('Select',()=>setFilm(f.id)));
    actions.append(libraryButton('Edit',()=>editFilm(f,false)));
    actions.append(libraryButton('Duplicate',()=>editFilm(f,true)));
-   if(!builtinIds.has(f.id))actions.append(libraryButton('Delete',()=>deleteFilm(f),'danger'));
+   actions.append(libraryButton('Delete',()=>deleteFilm(f),'danger'));
    card.append(actions);
-   const source=document.createElement('div');
-   source.className='meta';
-   source.textContent='Source: '+(f.provenance==='manufacturer'?'Manufacturer':'User');
    if(f.sourceUrl){
-     source.append(document.createTextNode(' · '));
+     const source=document.createElement('div');
+     source.className='meta';
      const link=document.createElement('a');
-     link.textContent=f.id==='kodak-gold-200'?'Kodak datasheet (1s only)':'Technical source';
-     link.href=f.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';
+     link.textContent='Source';
+     link.href=f.sourceUrl;
+     link.target='_blank';
+     link.rel='noopener noreferrer';
      link.style.color='var(--tint)';
      source.append(link);
+     card.append(source);
    }
-   card.append(source);
    lib.append(card);
  });
 }
 function deleteFilm(f){
- if(builtinIds.has(f.id))return;
  if(!window.confirm('Delete '+f.manufacturer+' '+f.name+'?'))return;
  state.customFilms=state.customFilms.filter(x=>x.id!==f.id);
- if(state.selectedId===f.id)state.selectedId=BUILTINS[0].id;
- safeSave();refillSelectors();render();setStatus('Film deleted.');
+ if(builtinIds.has(f.id) && !state.deletedFilmIds.includes(f.id))
+   state.deletedFilmIds.push(f.id);
+ if(editingId===f.id){$('editor').hidden=true;editingId=null}
+ reconcileSelection();
+ safeSave();render();setStatus('Film deleted.');
 }
 function editFilm(f,duplicate){
  editingId=duplicate?null:f?.id??null;
@@ -297,13 +322,14 @@ function saveFilm(event){
    const f=validateFilm(raw);
    const oldIndex=state.customFilms.findIndex(x=>x.id===f.id);
    if(oldIndex>=0)state.customFilms[oldIndex]=f;else state.customFilms.push(f);
+   state.deletedFilmIds=state.deletedFilmIds.filter(id=>id!==f.id);
    state.selectedId=f.id;safeSave();
    $('editor').hidden=true;editingId=null;refillSelectors();render();
    setStatus('Film saved locally.');
  }catch(err){$('formError').textContent=err.message;$('formError').hidden=false}
 }
 function exportJson(){
- const data={schemaVersion:1,app:'reciprocity-meter',customFilms:state.customFilms,selectedId:state.selectedId,meteredSeconds:state.meteredSeconds,graphRange:state.graphRange};
+ const data={schemaVersion:2,app:'reciprocity-meter',customFilms:state.customFilms,deletedFilmIds:state.deletedFilmIds,selectedId:state.selectedId,meteredSeconds:state.meteredSeconds,graphRange:state.graphRange};
  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
  const href=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=href;a.download='reciprocity-meter-backup.json';document.body.append(a);a.click();a.remove();
@@ -317,7 +343,7 @@ async function prepareImport(event){
  try{
    if(file.size>2e6)throw Error('Import file is too large');
    const raw=JSON.parse(await file.text());
-   if(raw?.schemaVersion!==1 || raw.app!=='reciprocity-meter'||!Array.isArray(raw.customFilms)||raw.customFilms.length>200)
+   if(![1,2].includes(raw?.schemaVersion) || raw.app!=='reciprocity-meter'||!Array.isArray(raw.customFilms)||raw.customFilms.length>200)
      throw Error('Unsupported backup format');
    const incoming=[], seen=new Set();
    for(const item of raw.customFilms){
@@ -325,18 +351,21 @@ async function prepareImport(event){
      if(!f.id || seen.has(f.id))throw Error('Invalid or duplicate film ID');
      incoming.push(f);seen.add(f.id);
    }
-   const selected=builtinIds.has(raw.selectedId) || incoming.some(x=>x.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
+   const deletedFilmIds=raw.schemaVersion===2?validDeletedIds(raw.deletedFilmIds,BUILTINS):[];
+   const available=effectiveFilms(BUILTINS,incoming,deletedFilmIds);
+   const selected=available.some(x=>x.id===raw.selectedId)?raw.selectedId:available[0]?.id??null;
    const meter=Number(raw.meteredSeconds);
    if(!Number.isFinite(meter)||meter<=0||meter>METER_MAX)throw Error('Invalid metered exposure');
    const collisions=incoming.filter(f=>state.customFilms.some(o=>o.id===f.id)).length;
-   importCandidate={customFilms:incoming,selectedId:selected,meteredSeconds:Math.max(1,meter),graphRange:graphRangeFor(Math.max(1,meter))};
-   $('importSummary').textContent='Import '+incoming.length+' saved film profile(s), replacing '+state.customFilms.length+' existing saved profile(s). '+collisions+' matching ID(s). Supplied films without saved changes retain their original values. Current film and exposure will be restored from the backup.';
+   importCandidate={customFilms:incoming,deletedFilmIds,selectedId:selected,meteredSeconds:Math.max(1,meter),graphRange:graphRangeFor(Math.max(1,meter))};
+   $('importSummary').textContent='Import '+incoming.length+' saved profile(s) and '+deletedFilmIds.length+' deleted supplied film(s), replacing the current library. '+collisions+' matching saved ID(s).';
    $('importPreview').hidden=false;
  }catch(err){setStatus('Import rejected: '+err.message)}
 }
 function commitImport(){
  if(!importCandidate)return;
  state={...defaults(),...importCandidate};importCandidate=null;$('importPreview').hidden=true;
+ reconcileSelection();
  safeSave();refillSelectors();render();setStatus('Backup imported.');
 }
 function render(){refillSelectors();renderCalc();renderGraph();renderTable();renderLibrary()}
@@ -377,6 +406,7 @@ $('tape').addEventListener('pointermove',e=>{
 });
 for(const evt of ['pointerup','pointercancel','lostpointercapture'])$('tape').addEventListener(evt,()=>{drag=null});
 $('plot').addEventListener('pointerdown',e=>{
+ if(!getFilm())return;
  if(e.pointerType==='mouse' && e.button!==0)return;
  draggingPlot=e.pointerId;
  $('plot').setPointerCapture(e.pointerId);
@@ -394,7 +424,7 @@ $('graphRange').addEventListener('change',e=>{
  state.graphRange=next;
  safeSave();renderGraph();
 });
-$('plot').addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();stepMeter(e.key==='ArrowRight'?1:-1)}});
+$('plot').addEventListener('keydown',e=>{if(!getFilm())return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();stepMeter(e.key==='ArrowRight'?1:-1)}});
 document.querySelectorAll('.tab').forEach(el=>el.addEventListener('click',()=>setPage(el.dataset.page)));
 $('addFilm').addEventListener('click',()=>editFilm(null,false));
 $('cancelEdit').addEventListener('click',()=>{$('editor').hidden=true;editingId=null});

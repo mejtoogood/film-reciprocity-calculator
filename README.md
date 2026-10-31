@@ -51,11 +51,11 @@ Both representations use the same active profile and calculation engine as Calc.
 
 ### Film library
 
-- Add, edit, duplicate and select **any** film profile, including the supplied stocks. Delete profiles you created yourself; editing a supplied stock saves a local override with the same ID, with **Reset** to restore its original values.
+- Add, edit, duplicate, select and delete **any** film profile, including supplied stocks. Edits and deletions are respected and persist locally.
 - Do not display a Built-in/Custom label in the film list.
 - Each profile has: manufacturer, film name, nominal ISO (metadata, not a mathematical input to reciprocity correction), model type, correction data, source URL/title/date, and optional notes/limitations.
-- The current film must always point to a valid profile; deleting it selects a remaining built-in profile.
-- Support JSON **export/import** of added films, edits to supplied films, and preferences, with schema versioning and input validation. Import previews conflicts before replacing existing data. Data stay on the device unless deliberately exported.
+- The selected film points to a valid profile or is null when the film library is empty. Deleting the last film leaves an empty library; Calc and Graph show an empty state until a new film is added.
+- Support JSON **export/import** of added films, edits to supplied films, deleted supplied film IDs, and preferences, with schema versioning and input validation. Import previews conflicts before replacing existing data. Data stay on the device unless deliberately exported.
 
 ### Correction models
 
@@ -181,3 +181,10 @@ All films can be edited directly from Config. Changes to supplied films are stor
 - All supplied films remain editable. Changes are respected without a Reset action in the Config list.
 - Data Origin has exactly **Manufacturer** and **User**. The film cards always show `Source: Manufacturer` or `Source: User` based on that selected value.
 - Kodak Gold 200 initially uses **User** origin for the provisional p=1.3 estimate; Kodak's linked technical source supports only the no-correction threshold through 1s. Legacy origins (community-estimate, personal, digitised) are mapped to User when previously saved profiles are loaded or imported.
+
+## v1.2.6 — Simplified links and deletable film library
+
+- Each film card displays only a **Source** hyperlink pointing directly to its configured source URL. With no URL the link is omitted. No source commentary is shown.
+- Supplied film profiles may be deleted. Deleted supplied film IDs are stored as persistent local state so they do not reappear on reload. Existing user edits are also deleted when that film is removed.
+- Empty library is supported without any fallback selection. Add films in Config to resume calculations.
+- JSON export uses schema v2 with saved films and the deleted-ID list. Schema v1 imports are supported for backwards compatibility; v1 has no deletion list and therefore restores packaged films.
