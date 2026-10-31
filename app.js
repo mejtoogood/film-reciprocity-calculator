@@ -1,4 +1,4 @@
-import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds} from './core.mjs?v=1.2.6';
+import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds,adjacentStops} from './core.mjs?v=1.2.7';
 
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
@@ -82,9 +82,7 @@ function stepMeter(direction){
 function renderCalc(){
   const film=getFilm(),t=state.meteredSeconds,r=film?corrected(film,t):null;
   if(document.activeElement!==$('meterInput')) $('meterInput').value=Number(t.toPrecision(10));
-  const index=nearestStop(t);
-  const previous=STOPS.slice().reverse().find(v=>v<t*(1-1e-10));
-  const next=STOPS.find(v=>v>t*(1+1e-10));
+  const {previous,next}=adjacentStops(t);
   $('tapePrev').textContent=previous==null?'':formatTime(previous);
   $('tapeCurrent').textContent=formatTime(t);
   $('tapeNext').textContent=next==null?'':formatTime(next);

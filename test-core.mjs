@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms,normalizeOrigin,validDeletedIds} from './core.mjs';
+import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms,normalizeOrigin,validDeletedIds,adjacentStops} from './core.mjs';
 
 test('Ilford manufacturer coefficients and provisional Kodak Gold 200',()=>{
  assert.deepEqual(BUILTINS.map(f=>f.iso),[50,100,400,400,200]);
@@ -122,4 +122,10 @@ test('deleted stock IDs validate and survive backups',()=>{
  assert.deepEqual(validDeletedIds(backup.deletedFilmIds,BUILTINS),deleted);
  assert.deepEqual(validDeletedIds(['invalid',deleted[0],deleted[0]],BUILTINS),[deleted[0]]);
  assert.deepEqual(validDeletedIds(undefined,BUILTINS),[]);
+});
+
+test('exposure tape hides nonexistent neighbouring stops at both limits',()=>{
+ assert.deepEqual(adjacentStops(1),{previous:null,next:1.5});
+ assert.deepEqual(adjacentStops(3600),{previous:2700,next:null});
+ assert.deepEqual(adjacentStops(30),{previous:20,next:45});
 });

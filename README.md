@@ -188,3 +188,7 @@ All films can be edited directly from Config. Changes to supplied films are stor
 - Supplied film profiles may be deleted. Deleted supplied film IDs are stored as persistent local state so they do not reappear on reload. Existing user edits are also deleted when that film is removed.
 - Empty library is supported without any fallback selection. Add films in Config to resume calculations.
 - JSON export uses schema v2 with saved films and the deleted-ID list. Schema v1 imports are supported for backwards compatibility; v1 has no deletion list and therefore restores packaged films.
+
+## v1.2.7 — Exposure tape boundaries and cache refresh
+
+The previous exposure label is explicitly empty at 1s and the next label explicitly empty at 1h. Both boundary buttons are disabled accordingly. Navigation requests use network-first fetching with offline cached fallback, so previously installed service workers do not indefinitely serve obsolete application HTML when online.

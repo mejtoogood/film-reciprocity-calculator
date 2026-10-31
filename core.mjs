@@ -188,6 +188,12 @@ export function exposureStops() {
   return [1,1.5,2,3,4,6,8,10,15,20,30,45,60,90,120,180,240,300,450,600,900,1200,1800,2700,3600];
 }
 export const STOPS=exposureStops();
+export function adjacentStops(t) {
+  return {
+    previous: t <= STOPS[0] ? null : STOPS.slice().reverse().find(v => v < t*(1-1e-10)) ?? null,
+    next: t >= STOPS.at(-1) ? null : STOPS.find(v => v > t*(1+1e-10)) ?? null
+  };
+}
 export function nearestStop(t) {
   let best=0, distance=Infinity;
   STOPS.forEach((v,i)=>{const d=Math.abs(Math.log(v/t));if(d<distance){best=i;distance=d}});
