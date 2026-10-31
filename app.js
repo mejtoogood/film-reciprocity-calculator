@@ -1,4 +1,4 @@
-import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds,adjacentStops} from './core.mjs?v=1.2.9';
+import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms,validDeletedIds,adjacentStops} from './core.mjs?v=1.3.0';
 
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
@@ -6,7 +6,7 @@ const builtinIds = new Set(BUILTINS.map(f=>f.id));
 const METER_MAX=3600, METER_MIN=1;
 const defaults=()=>({customFilms:[],deletedFilmIds:[],selectedId:BUILTINS[0].id,meteredSeconds:30,graphRange:graphRangeFor(30)});
 let storageAvailable=true;
-let state=defaults(), activePage='calc', editingId=null, importCandidate=null;
+let state=defaults(), activePage='graph', editingId=null, importCandidate=null;
 
 function getFilms(){return effectiveFilms(BUILTINS,state.customFilms,state.deletedFilmIds)}
 function getFilm(){return getFilms().find(f=>f.id===state.selectedId)||null}

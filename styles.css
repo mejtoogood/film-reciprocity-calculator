@@ -20,7 +20,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--tint)}select{appearan
 .result{margin-top:clamp(32px,8dvh,90px);text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:122px}
 .result output{font-size:clamp(42px,10vw,62px);line-height:1.35;font-weight:730;letter-spacing:-.045em;white-space:nowrap}
 .ev-result{font-size:19px;color:var(--tint);font-weight:600;margin-top:4px}.result-notice{font-size:13px;color:var(--bad);margin-top:12px;max-width:280px}
-.bottom-nav{flex:none;display:grid;grid-template-columns:1fr 1.4fr 1fr;align-items:stretch;min-height:58px;background:#16212b;border-top:1px solid var(--edge);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bottom-nav{flex:none;display:grid;grid-template-columns:1.4fr 1fr 1fr;align-items:stretch;min-height:58px;background:#16212b;border-top:1px solid var(--edge);padding-bottom:env(safe-area-inset-bottom,0px)}
 .tab{min-height:58px;background:none;border:0;color:var(--muted);font-weight:650;font-size:14px;position:relative}
 .tab.selected{color:var(--fg)}.tab.selected:before{content:"";height:3px;position:absolute;top:0;left:22%;right:22%;background:var(--tint);border-radius:0 0 3px 3px}
 .compact{flex:none;margin-bottom:18px}.section-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 13px}
@@ -59,6 +59,6 @@ th:first-child,td:first-child{text-align:left}tr.selected{background:var(--highl
 .graph-header>span{font-size:11px;letter-spacing:.09em;font-weight:700;color:var(--muted)}
 .range-control{display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.08em;font-weight:700;color:var(--muted)}
 .range-control select{width:auto;height:32px;padding:2px 5px;font-size:12px;border-radius:7px;letter-spacing:normal}
-.graph-readout{border-top:1px solid #344553;min-height:39px;padding:11px 8px 5px;text-align:center;font-size:13px;font-weight:640;color:var(--tint);font-variant-numeric:tabular-nums}
+.graph-readout{border-bottom:1px solid #344553;min-height:44px;padding:10px 5px 11px;text-align:center;font-size:13px;font-weight:640;color:var(--tint);font-variant-numeric:tabular-nums}
 #plot{touch-action:none;user-select:none;-webkit-user-select:none}
 .plot-hint{font-size:11px;color:#a2b1be;padding:0 10px 8px;text-align:center}
