@@ -51,11 +51,11 @@ Both representations use the same active profile and calculation engine as Calc.
 
 ### Film library
 
-- Add, edit, duplicate, select and delete custom film profiles.
-- Built-in manufacturer profiles are **read-only**; duplication allows customising one without overwriting sourced values.
+- Add, edit, duplicate and select **any** film profile, including the supplied stocks. Delete profiles you created yourself; editing a supplied stock saves a local override with the same ID, with **Reset** to restore its original values.
+- Do not display a Built-in/Custom label in the film list.
 - Each profile has: manufacturer, film name, nominal ISO (metadata, not a mathematical input to reciprocity correction), model type, correction data, source URL/title/date, and optional notes/limitations.
 - The current film must always point to a valid profile; deleting it selects a remaining built-in profile.
-- Support JSON **export/import** of custom profiles and preferences, with schema versioning and input validation. Import previews conflicts before replacing existing data. Data stay on the device unless deliberately exported.
+- Support JSON **export/import** of added films, edits to supplied films, and preferences, with schema versioning and input validation. Import previews conflicts before replacing existing data. Data stay on the device unless deliberately exported.
 
 ### Correction models
 
@@ -125,7 +125,7 @@ Manufacturer sources:
 4. Graph/table selections alter shared input without switching tabs.
 5. A user can add a custom power-law profile and a custom table-based profile, and each calculates correctly.
 6. Tabulated profiles interpolate between their data points; out-of-range requests do not silently extrapolate.
-7. Export/import preserves custom profiles and selected settings; malformed profile data are rejected without corrupting the library.
+7. Export/import preserves user-added profiles, edits to supplied profiles, and selected settings; malformed profile data are rejected without corrupting the library.
 8. Application operates offline after installation; app restart retains the last selected film and metered exposure.
 9. No countdown timer or other unrequested feature is present.
 
@@ -170,3 +170,7 @@ An automated GitHub Actions check runs a native ES module syntax parse (includin
 ## v1.2.3 — Graph auto-framing
 
 Entering Graph / Table automatically selects the smallest available X-axis view that contains the metered exposure (e.g. **10m → 15m**). Changes to the metered time outside the graph likewise reframe it, while deliberate manual selections on the graph are preserved until leaving the tab or selecting an exposure outside the current view. Supported views: **15s, 1m, 5m, 15m, 1h** (1s removed). Stored ranges from older versions are discarded to prevent offscreen current values.
+
+## v1.2.4 — Editable supplied profiles
+
+All films can be edited directly from Config. Changes to supplied films are stored locally under their original IDs rather than duplicating them in selection controls. A Reset control restores the packaged values when they have been modified. Profile badges are removed. JSON backup and restore includes user changes to supplied films; profiles not present in the backup retain their packaged defaults.

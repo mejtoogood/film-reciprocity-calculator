@@ -197,3 +197,15 @@ export function graphRangeFor(t) {
   if(!positive(t)) return 60;
   return GRAPH_RANGES.find(range=>t<=range)||GRAPH_RANGES.at(-1);
 }
+
+/** Compose the supplied defaults with locally saved edits and user-added profiles.
+ *  An edited supplied stock retains its stable ID; the original remains available for Reset.
+ */
+export function effectiveFilms(defaults, saved) {
+  const savedById = new Map(saved.map(f => [f.id, f]));
+  const defaultIds = new Set(defaults.map(f => f.id));
+  return [
+    ...defaults.map(base => savedById.get(base.id) ?? base),
+    ...saved.filter(f => !defaultIds.has(f.id))
+  ];
+}

@@ -1,4 +1,4 @@
-import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES} from './core.mjs?v=1.2.3';
+import {BUILTINS,STOPS,corrected,validateFilm,formatTime,formatEV,nearestStop,graphRangeFor,GRAPH_RANGES,effectiveFilms} from './core.mjs?v=1.2.4';
 
 const $ = id=>document.getElementById(id);
 const STORAGE='reciprocity-meter-state-v1';
@@ -8,7 +8,7 @@ const defaults=()=>({customFilms:[], selectedId:BUILTINS[0].id, meteredSeconds:3
 let storageAvailable=true;
 let state=defaults(), activePage='calc', editingId=null, importCandidate=null;
 
-function getFilms(){return [...BUILTINS,...state.customFilms]}
+function getFilms(){return effectiveFilms(BUILTINS,state.customFilms)}
 function getFilm(){return getFilms().find(f=>f.id===state.selectedId)||BUILTINS[0]}
 function safeSave(){
   try{localStorage.setItem(STORAGE,JSON.stringify(state));storageAvailable=true}
@@ -22,7 +22,7 @@ function load(){
     for (const entry of raw.customFilms) {
       try {
         const f=validateFilm(entry);
-        if(!f.id || builtinIds.has(f.id) || customs.some(x=>x.id===f.id)) continue;
+        if(!f.id || customs.some(x=>x.id===f.id)) continue;
         customs.push(f);
       } catch {}
     }
@@ -222,26 +222,44 @@ function renderLibrary(){
    const card=document.createElement('div');card.className='film-card'+(f.id===state.selectedId?' is-active':'');
    const name=document.createElement('strong');name.textContent=f.manufacturer+' '+f.name;card.append(name);
    const meta=document.createElement('div');meta.className='meta';
-   meta.textContent='ISO '+f.iso+' · '+(f.model==='power'?'Power law (p='+f.p+')':'Tabulated curve')+' · '+(f.builtin?'Built-in':'Custom');
+   meta.textContent='ISO '+f.iso+' · '+(f.model==='power'?'Power law (p='+f.p+')':'Tabulated curve');
    card.append(meta);
    const actions=document.createElement('div');actions.className='film-card-actions';
    if(f.id!==state.selectedId)actions.append(libraryButton('Select',()=>setFilm(f.id)));
+   actions.append(libraryButton('Edit',()=>editFilm(f,false)));
    actions.append(libraryButton('Duplicate',()=>editFilm(f,true)));
-   if(!f.builtin){
-     actions.append(libraryButton('Edit',()=>editFilm(f,false)));
+   if(builtinIds.has(f.id)){
+     if(state.customFilms.some(x=>x.id===f.id))
+       actions.append(libraryButton('Reset',()=>resetFilm(f),'danger'));
+   }else{
      actions.append(libraryButton('Delete',()=>deleteFilm(f),'danger'));
    }
    card.append(actions);
-   if(f.builtin){
+   if(f.sourceUrl || f.provenance==='community-estimate'){
      const info=document.createElement('div');info.className='meta';
-     info.textContent=f.provenance==='community-estimate'?'Provisional coefficient p='+f.p+' · not Kodak-verified. ':'Source: manufacturer · '+f.sourceDate+'. ';
-     const link=document.createElement('a');link.textContent=f.provenance==='community-estimate'?'Kodak datasheet (1s threshold only)':'Technical source';link.href=f.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';link.style.color='var(--tint)';
-     info.append(link);card.append(info);
+     info.textContent=f.provenance==='community-estimate'
+       ?'Provisional coefficient p='+f.p+' · not Kodak-verified. '
+       :f.provenance==='manufacturer' ? 'Source: manufacturer. ' : '';
+     if(f.sourceUrl){
+       const link=document.createElement('a');
+       link.textContent=f.provenance==='community-estimate'?'Kodak datasheet (1s threshold only)':'Technical source';
+       link.href=f.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';link.style.color='var(--tint)';
+       info.append(link);
+     }
+     card.append(info);
    }
    lib.append(card);
  });
 }
+function resetFilm(f){
+ if(!builtinIds.has(f.id))return;
+ if(!window.confirm('Reset '+f.manufacturer+' '+f.name+' to the supplied values?'))return;
+ state.customFilms=state.customFilms.filter(x=>x.id!==f.id);
+ if(editingId===f.id){$('editor').hidden=true;editingId=null}
+ safeSave();render();setStatus('Film reset to supplied values.');
+}
 function deleteFilm(f){
+ if(builtinIds.has(f.id))return;
  if(!window.confirm('Delete '+f.manufacturer+' '+f.name+'?'))return;
  state.customFilms=state.customFilms.filter(x=>x.id!==f.id);
  if(state.selectedId===f.id)state.selectedId=BUILTINS[0].id;
@@ -261,7 +279,9 @@ function editFilm(f,duplicate){
  $('fMin').value=f?.min??'';
  $('fMax').value=f?.max??'';
  $('fPairs').value=f?.pairs?.map(p=>p.join(',')).join('\n')??'';
- $('fProvenance').value=f?.provenance??'personal';
+ // A manual change to a supplied profile is not automatically manufacturer-verified.
+ $('fProvenance').value=(f && builtinIds.has(f.id) && !state.customFilms.some(x=>x.id===f.id))
+   ? 'personal' : (f?.provenance??'personal');
  $('fDate').value=f?.sourceDate??'';
  $('fSource').value=f?.sourceTitle??'';
  $('fUrl').value=f?.sourceUrl??'';
@@ -282,7 +302,6 @@ function saveFilm(event){
  };
  try{
    const f=validateFilm(raw);
-   if(builtinIds.has(f.id))throw Error('Cannot overwrite a built-in profile');
    const oldIndex=state.customFilms.findIndex(x=>x.id===f.id);
    if(oldIndex>=0)state.customFilms[oldIndex]=f;else state.customFilms.push(f);
    state.selectedId=f.id;safeSave();
@@ -310,7 +329,7 @@ async function prepareImport(event){
    const incoming=[], seen=new Set();
    for(const item of raw.customFilms){
      const f=validateFilm(item);
-     if(!f.id || builtinIds.has(f.id) || seen.has(f.id))throw Error('Invalid or duplicate film ID');
+     if(!f.id || seen.has(f.id))throw Error('Invalid or duplicate film ID');
      incoming.push(f);seen.add(f.id);
    }
    const selected=builtinIds.has(raw.selectedId) || incoming.some(x=>x.id===raw.selectedId)?raw.selectedId:BUILTINS[0].id;
@@ -318,7 +337,7 @@ async function prepareImport(event){
    if(!Number.isFinite(meter)||meter<METER_MIN||meter>METER_MAX)throw Error('Invalid metered exposure');
    const collisions=incoming.filter(f=>state.customFilms.some(o=>o.id===f.id)).length;
    importCandidate={customFilms:incoming,selectedId:selected,meteredSeconds:meter,graphRange:graphRangeFor(meter)};
-   $('importSummary').textContent='Import '+incoming.length+' custom film(s), replacing the current custom library ('+state.customFilms.length+' saved). '+collisions+' matching ID(s). Current film and exposure will be restored from the backup.';
+   $('importSummary').textContent='Import '+incoming.length+' saved film profile(s), replacing '+state.customFilms.length+' existing saved profile(s). '+collisions+' matching ID(s). Supplied films without saved changes retain their original values. Current film and exposure will be restored from the backup.';
    $('importPreview').hidden=false;
  }catch(err){setStatus('Import rejected: '+err.message)}
 }

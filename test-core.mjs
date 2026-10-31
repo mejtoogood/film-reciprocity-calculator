@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES} from './core.mjs';
+import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms} from './core.mjs';
 
 test('Ilford manufacturer coefficients and provisional Kodak Gold 200',()=>{
  assert.deepEqual(BUILTINS.map(f=>f.iso),[50,100,400,400,200]);
@@ -61,4 +61,27 @@ test('graph automatically frames the metered exposure',()=>{
  assert.equal(graphRangeFor(900),900);
  assert.equal(graphRangeFor(901),3600);
  assert.equal(graphRangeFor(3600),3600);
+});
+
+test('supplied stock edits override defaults without duplicate entries',()=>{
+ const original=BUILTINS.find(x=>x.id==='ilford-pan-f-plus-50');
+ const edit=validateFilm({...original,p:1.5});
+ const changed=effectiveFilms(BUILTINS,[edit]);
+ assert.equal(changed.length,BUILTINS.length);
+ assert.equal(changed.filter(x=>x.id===original.id).length,1);
+ assert.equal(changed.find(x=>x.id===original.id).p,1.5);
+ assert.equal(corrected(changed.find(x=>x.id===original.id),30).seconds,30**1.5);
+ assert.equal(BUILTINS.find(x=>x.id===original.id).p,1.33);
+ assert.equal(effectiveFilms(BUILTINS,[]).find(x=>x.id===original.id).p,1.33);
+});
+test('saved edits survive JSON round-trip and user added films are retained',()=>{
+ const saved=[
+   validateFilm({...BUILTINS[4],p:1.55}),
+   validateFilm({id:'custom-example',manufacturer:'Test',name:'Custom',iso:100,model:'power',p:1.4,t0:1})
+ ];
+ const restored=JSON.parse(JSON.stringify(saved));
+ const films=effectiveFilms(BUILTINS,restored);
+ assert.equal(films.length,BUILTINS.length+1);
+ assert.equal(films.find(f=>f.id==='kodak-gold-200').p,1.55);
+ assert.ok(films.some(f=>f.id==='custom-example'));
 });
