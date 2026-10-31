@@ -44,7 +44,7 @@ Both representations use the same active profile and calculation engine as Calc.
 
 - Columns: metered exposure, corrected exposure, additional EV.
 - Use useful photographic exposure intervals, with a row for the current metered value as appropriate.
-- Highlight the current value. Tapping a row changes the shared metered exposure without navigating away.
+- Highlight the current value. Table rows are read-only; exposure may be changed only through Curve or Calc.
 - Keep scrolling within the graph/table content area; leave the navigation bar fixed.
 
 ## 3. Config
@@ -122,7 +122,7 @@ Manufacturer sources:
 1. With PAN F Plus selected, 30 s metered yields approximately 92 s corrected and +1.62 EV (before display rounding).
 2. At 1 s or less, the initial PAN F Plus profile returns the uncorrected time under its selected manufacturer guidance.
 3. Switching film or metered time immediately updates Calc, Graph, and Table without navigation.
-4. Graph/table selections alter shared input without switching tabs.
+4. Curve selections alter shared input without switching tabs; table rows are non-interactive.
 5. A user can add a custom power-law profile and a custom table-based profile, and each calculates correctly.
 6. Tabulated profiles interpolate between their data points; out-of-range requests do not silently extrapolate.
 7. Export/import preserves user-added profiles, edits to supplied profiles, and selected settings; malformed profile data are rejected without corrupting the library.
@@ -210,7 +210,7 @@ Removed unsolicited Kodak estimate warning text from Calc and the estimate suffi
 
 ## v1.3.1 — Dropdown + navigation
 
-Calc retains direct numeric seconds entry above a native shutter-speed dropdown (1s–1h presets and **Custom**). Selecting a preset updates the calculator, curve and table. Selecting **Custom** focuses the numeric seconds field. A custom numeric entry or interaction with the curve/table chooses Custom, including when the value equals a preset. Meter mode is persisted in local state and included in JSON backups; older saved states infer the mode from their shutter value.
+Calc retains direct numeric seconds entry above a native shutter-speed dropdown (1s–1h presets and **Custom**). Selecting a preset updates the calculator, curve and table. Selecting **Custom** focuses the numeric seconds field. A custom numeric entry or interaction with the curve chooses Custom, including when the value equals a preset. Meter mode is persisted in local state and included in JSON backups; older saved states infer the mode from their shutter value.
 
 The three tabs, in order, are **Curve**, **Calc**, and **Settings**, with line-chart, calculator and sliders icons.
 
@@ -219,3 +219,7 @@ The three tabs, in order, are **Curve**, **Calc**, and **Settings**, with line-c
 - Reduced bottom-tab content height from 65px to 49px, icon size from 20px to 18px, label size from 13px to 12px, and icon/label gap from 3px to 1px. The 49px controls retain adequate touch height.
 - In installed standalone mode, use full-height `100vh` for the shell and page root instead of `100dvh`, which can omit a status-bar-sized strip from the viewport on affected iOS 26/27 releases. Regular Safari keeps `100dvh` to avoid browser-toolbar overlap.
 - Preserve bottom safe-area padding within the nav for the iOS home indicator. Requires testing on an affected iPhone to confirm the WebKit viewport gap is eliminated.
+
+## v1.3.3 — Read-only reference table
+
+Removed click and keyboard activation from reference table rows, including button semantics and touch affordances. The active exposure may still be highlighted as a passive indicator. Exposure changes are supported exclusively in Curve and Calc, so vertical scrolling cannot alter the metered exposure.

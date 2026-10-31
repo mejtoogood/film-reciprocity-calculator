@@ -208,12 +208,9 @@ function renderTable(){
  for(const x of tableTimes(t)){
    const r=corrected(f,x);
    const tr=document.createElement('tr');
-   tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label','Select '+formatTime(x)+' metered exposure');
    if(Math.abs(Math.log(x/t))<1e-9)tr.classList.add('selected');
    const cells=[formatTime(x),r.ok?formatTime(r.seconds):'—',r.ok?formatEV(r.ev).replace(' EV',''):'—'];
    for(const s of cells){const td=document.createElement('td');td.textContent=s;tr.append(td)}
-   tr.addEventListener('click',()=>setMeter(x));
-   tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setMeter(x)}});
    body.append(tr);
  }
 }

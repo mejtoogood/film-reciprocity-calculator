@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS,graphRangeFor,GRAPH_RANGES,effectiveFilms,normalizeOrigin,validDeletedIds,adjacentStops,meterChoice} from './core.mjs';
@@ -138,4 +139,15 @@ test('dropdown selects Custom when a graph or manual value is supplied',()=>{
  assert.equal(meterChoice(1,'preset'),'1');
  assert.equal(meterChoice(3600,'preset'),'3600');
  assert.equal(meterChoice(20,'graph'),'custom');
+});
+
+test('reference table remains read-only',()=>{
+ const code=readFileSync(new URL('./app.js',import.meta.url),'utf8');
+ const table=code.slice(code.indexOf('function renderTable(){'),code.indexOf('function libraryButton('));
+ assert.ok(table.includes("body.append(tr);"));
+ assert.doesNotMatch(table,/addEventListener\s*\(/);
+ assert.doesNotMatch(table,/setAttribute\s*\(\s*['"]role['"]\s*,\s*['"]button['"]/);
+ assert.doesNotMatch(table,/\.tabIndex\s*=/);
+ const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
+ assert.doesNotMatch(html,/SELECT A ROW/);
 });
