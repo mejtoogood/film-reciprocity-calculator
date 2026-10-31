@@ -95,7 +95,7 @@ Manufacturer sources:
 - [Ilford — Film Reciprocity Failure Compensation (Dec 2023)](https://www.ilfordphoto.com/amfile/file/download/file/1964/product/2246/)
 - [Ilford — PAN F Plus technical information](https://www.ilfordphoto.com/amfile/file/download/file/1905/product/431/)
 
-**Bundled film profiles (v1.1):** Ilford PAN F Plus 50 (1.33), Ilford Delta 100 Professional (1.26), Ilford Delta 400 Professional (1.41), Ilford HP5 Plus 400 (1.31); all from Ilford's December 2023 reciprocity technical sheet. Kodak Gold 200 is also listed, using Kodak's 2022 E-7022 technical data: **no adjustment through 1s; no published correction guidance beyond 1s**. The app reports an unavailable correction for longer Gold 200 exposures rather than assigning an unverified coefficient. Source: [Kodak Gold 200 E-7022](https://www.kodakprofessional.com/sites/default/files/wysiwyg/E7022-1.pdf).
+**Bundled film profiles (v1.1):** Ilford PAN F Plus 50 (1.33), Ilford Delta 100 Professional (1.26), Ilford Delta 400 Professional (1.41), Ilford HP5 Plus 400 (1.31); all from Ilford's December 2023 reciprocity technical sheet. Kodak Gold 200 uses a **provisional exponent p=1.3**, selected as a community-derived working estimate, **not** a Kodak-published coefficient. Kodak's 2022 E-7022 confirms no adjustment through 1 second but provides no correction curve beyond that. The app labels Gold 200 results as estimates. Source for no-adjustment threshold: [Kodak Gold 200 E-7022](https://www.kodakprofessional.com/sites/default/files/wysiwyg/E7022-1.pdf).
 
 ## Visual and interaction style
 
@@ -147,7 +147,7 @@ Run calculation tests with `node --test test-core.mjs`. The application is depen
 
 ### Current limitations
 
-- Ilford PAN F Plus 50, Delta 100, Delta 400, HP5 Plus 400, and Kodak Gold 200 are included. Kodak has no source-verified correction beyond 1s and displays an unavailable result.
+- Ilford PAN F Plus 50, Delta 100, Delta 400, HP5 Plus 400, and Kodak Gold 200 are included. Gold 200's p=1.3 is a provisional user-selected estimate, explicitly distinct from Kodak manufacturer data.
 - The power-law domain limits are unknown where not published by the manufacturer.
 - No countdown timer is implemented, by design.
 - JSON backups are recommended because browser storage can be cleared.
@@ -160,3 +160,9 @@ Metered inputs are capped at 3600 seconds (1 hour) with no cap on the calculated
 ## Build checks
 
 An automated GitHub Actions check runs a native ES module syntax parse (including duplicate-declaration detection) and the correction engine tests. This catches startup syntax errors before approving further changes.
+
+## v1.2.2
+
+- Kodak Gold 200: provisional power-law exponent p=1.3, no correction through 1s; clearly marked as not Kodak-verified.
+- Exposure tape: hide duplicate values at the minimum and maximum ends, and disable the exhausted step control.
+- Graph axes: use recognisable time intervals (for example, 0/1/2/3/4/5 minutes on a 5-minute X view and 0/15/30/45/60 minutes on the Y axis when appropriate).

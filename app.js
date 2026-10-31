@@ -66,13 +66,18 @@ function renderCalc(){
   const t=state.meteredSeconds, r=corrected(getFilm(),t);
   if(document.activeElement!==$('meterInput')) $('meterInput').value=Number(t.toPrecision(10));
   const index=nearestStop(t);
-  $('tapePrev').textContent=formatTime(STOPS[Math.max(0,index-1)]);
+  const previous=STOPS.slice().reverse().find(v=>v<t*(1-1e-10));
+  const next=STOPS.find(v=>v>t*(1+1e-10));
+  $('tapePrev').textContent=previous==null?'':formatTime(previous);
   $('tapeCurrent').textContent=formatTime(t);
-  $('tapeNext').textContent=formatTime(STOPS[Math.min(STOPS.length-1,index+1)]);
+  $('tapeNext').textContent=next==null?'':formatTime(next);
+  $('prevStop').disabled=previous==null;
+  $('nextStop').disabled=next==null;
   $('correctedResult').textContent=r.ok?formatTime(r.seconds):'—';
   $('evResult').textContent=r.ok?formatEV(r.ev):'OUT OF RANGE';
-  $('resultNotice').hidden=r.ok;
-  $('resultNotice').textContent=r.ok?'':r.reason;
+  const isEstimate=r.ok && getFilm().provenance==='community-estimate';
+  $('resultNotice').hidden=r.ok && !isEstimate;
+  $('resultNotice').textContent=!r.ok?r.reason:isEstimate?'Provisional estimate · not Kodak-verified':'';
 }
 function textSVG(x,y,str,anchor='middle'){
  const n=document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -100,11 +105,17 @@ function axisTime(seconds){
   const hours=Math.floor(seconds/3600),mins=Math.round((seconds-hours*3600)/60);
   return mins?hours+'h'+mins+'m':hours+'h';
 }
+// Use human-friendly, whole time increments rather than decimal steps such as 1000s.
 function graphYStep(y){
- const target=Math.max(y,1e-6)/5;
- const pow=Math.pow(10,Math.floor(Math.log10(target)));
- const m=target/pow;
- return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*pow;
+ const target=Math.max(y,0.000001)/5;
+ const nice=[0.05,0.1,0.2,0.25,0.5,1,2,5,10,15,20,30,60,120,300,600,900,1200,1800,3600,7200,10800,14400,21600,28800,43200,86400,172800,259200,432000,604800];
+ const found=nice.find(v=>v>=target);
+ if(found)return found;
+ const power=Math.pow(10,Math.floor(Math.log10(target)));
+ return [1,2,5,10].map(v=>v*power).find(v=>v>=target)||10*power;
+}
+function graphXStep(max){
+ return ({1:0.25,15:5,60:15,300:60,900:300,3600:900})[max] || graphYStep(max);
 }
 function renderGraph(){
  const svg=$('plot'), f=getFilm(),t=state.meteredSeconds;
@@ -125,8 +136,9 @@ function renderGraph(){
  const sy=y=>bounds.top+bounds.height-(y/maxY)*bounds.height;
  const addLine=(x1,y1,x2,y2,style='plot-grid')=>svg.append(nodeSVG('line',{x1,y1,x2,y2,class:style}));
  // Four or five uncluttered tick labels, with a dedicated margin for y labels.
- for(let i=0;i<=4;i++){
-   const x=graphRange*i/4,xx=sx(x);
+ const xStep=graphXStep(graphRange);
+ for(let i=0;i<=Math.round(graphRange/xStep);i++){
+   const x=i*xStep,xx=sx(x);
    addLine(xx,bounds.top,xx,bounds.top+bounds.height);
    svg.append(textSVG(xx,241,axisTime(x)));
  }
@@ -163,8 +175,8 @@ function renderGraph(){
    svg.append(nodeSVG('circle',{cx:x,cy:y,r:5.5,class:'plot-point'}));
  }
  $('graphReadout').textContent=cr.ok
-   ?axisTime(t)+' metered  →  '+axisTime(cr.seconds)+' corrected  ·  '+formatEV(cr.ev)
-   :axisTime(t)+' metered  ·  NO VERIFIED CORRECTION DATA';
+   ?axisTime(t)+' metered  →  '+axisTime(cr.seconds)+' corrected  ·  '+formatEV(cr.ev)+(f.provenance==='community-estimate'?' · ESTIMATE':'')
+   :axisTime(t)+' metered  ·  NO CORRECTION DATA';
 }
 function onPlotPointer(event){
  const svg=$('plot');
@@ -218,8 +230,8 @@ function renderLibrary(){
    card.append(actions);
    if(f.builtin){
      const info=document.createElement('div');info.className='meta';
-     info.textContent=f.noBeyond?'No verified correction beyond 1s. ':'Source: manufacturer · '+f.sourceDate+'. ';
-     const link=document.createElement('a');link.textContent='Technical source';link.href=f.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';link.style.color='var(--tint)';
+     info.textContent=f.provenance==='community-estimate'?'Provisional coefficient p='+f.p+' · not Kodak-verified. ':'Source: manufacturer · '+f.sourceDate+'. ';
+     const link=document.createElement('a');link.textContent=f.provenance==='community-estimate'?'Kodak datasheet (1s threshold only)':'Technical source';link.href=f.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';link.style.color='var(--tint)';
      info.append(link);card.append(info);
    }
    lib.append(card);
@@ -232,7 +244,6 @@ function deleteFilm(f){
  safeSave();refillSelectors();render();setStatus('Film deleted.');
 }
 function editFilm(f,duplicate){
- if(duplicate && f?.noBeyond){f={...f,model:'table',pairs:[[.0001,.0001],[1,1]],name:f.name+' custom'};}
  editingId=duplicate?null:f?.id??null;
  $('editor').hidden=false;
  $('editorHeading').textContent=duplicate?'DUPLICATE FILM':editingId?'EDIT FILM':'ADD FILM';

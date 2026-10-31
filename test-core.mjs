@@ -2,14 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BUILTINS,corrected,validateFilm,interpolate,parsePairs,formatTime,nearestStop,STOPS} from './core.mjs';
 
-test('manufacturer factors and Kodak published limits',()=>{
+test('Ilford manufacturer coefficients and provisional Kodak Gold 200',()=>{
  assert.deepEqual(BUILTINS.map(f=>f.iso),[50,100,400,400,200]);
  assert.deepEqual(BUILTINS.slice(0,4).map(f=>f.p),[1.33,1.26,1.41,1.31]);
  const gold=BUILTINS[4];
+ assert.equal(gold.model,'power');
+ assert.equal(gold.p,1.3);
+ assert.equal(gold.provenance,'community-estimate');
  assert.equal(corrected(gold,1).seconds,1);
- assert.equal(corrected(gold,10).ok,false);
- assert.match(corrected(gold,10).reason,/Kodak/);
+ assert.ok(Math.abs(corrected(gold,30).seconds-Math.pow(30,1.3))<1e-8);
 });
+
 test('Ilford PAN F Plus 50 uses published exponent',()=>{
  const p=BUILTINS[0];
  assert.equal(p.p,1.33);

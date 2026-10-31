@@ -72,23 +72,16 @@ export const BUILTINS = Object.freeze([
     "manufacturer": "Kodak",
     "name": "Gold 200",
     "iso": 200,
-    "model": "table",
-    "pairs": [
-      [
-        0.0001,
-        0.0001
-      ],
-      [
-        1,
-        1
-      ]
-    ],
-    "noBeyond": 1,
-    "provenance": "manufacturer",
-    "sourceTitle": "Kodak GOLD 200 technical data E-7022",
+    "model": "power",
+    "p": 1.3,
+    "t0": 1,
+    "min": null,
+    "max": null,
+    "provenance": "community-estimate",
+    "sourceTitle": "Kodak GOLD 200 E-7022 (threshold only, not the exponent)",
     "sourceUrl": "https://www.kodakprofessional.com/sites/default/files/wysiwyg/E7022-1.pdf",
     "sourceDate": "2022-03",
-    "notes": "Kodak specifies no exposure/filter adjustment from 1/10000 to 1 second, and recommends testing for longer exposures. No manufacturer correction curve or exponent is published for exposures over 1 second.",
+    "notes": "Provisional p=1.3 estimate requested by user. Kodak's datasheet supports no correction through 1s but does NOT publish this exponent. Test critical long exposures.",
     "builtin": true
   }
 ]);
